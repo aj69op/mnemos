@@ -13,8 +13,8 @@ function NavBar() {
     <div className="fixed top-0 left-0 right-0 z-50 px-6 py-4 pointer-events-none">
       <nav className="max-w-7xl mx-auto h-16 glass-panel pointer-events-auto flex items-center justify-between px-6 rounded-2xl">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 flex items-center justify-center drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] group-hover:drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] transition-all duration-300">
-            <Image src="/logo_transparent.png" alt="Mnemos Logo" width={40} height={40} className="object-contain" />
+          <div className="w-14 h-14 flex items-center justify-center drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] group-hover:drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] transition-all duration-300">
+            <Image src="/logo_transparent.png" alt="Mnemos Logo" width={56} height={56} className="object-contain" />
           </div>
           <div>
             <span className="text-lg font-bold tracking-tight text-white">

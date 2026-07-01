@@ -84,8 +84,8 @@ export default function CustomerProfile() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 flex items-center justify-center drop-shadow-[0_0_5px_rgba(59,130,246,0.5)] group-hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-300">
-                <img src="/logo_transparent.png" alt="Mnemos Logo" className="w-8 h-8 object-contain" />
+              <div className="w-12 h-12 flex items-center justify-center drop-shadow-[0_0_5px_rgba(59,130,246,0.5)] group-hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-300">
+                <img src="/logo_transparent.png" alt="Mnemos Logo" className="w-12 h-12 object-contain" />
               </div>
               <span className="text-xl font-bold tracking-tight text-white group-hover:text-electric-400 transition-colors">Mnemos</span>
             </Link>

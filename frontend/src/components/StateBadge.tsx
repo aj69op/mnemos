@@ -8,65 +8,65 @@ interface StateBadgeProps {
 const stateConfig: Record<string, { color: string; bg: string; border: string; glow: string; icon: string }> = {
   critical: {
     color: "text-red-400",
-    bg: "bg-red-500/10",
-    border: "border-red-500/20",
-    glow: "shadow-red-500/10",
+    bg: "bg-red-500/15",
+    border: "border-red-500/30",
+    glow: "shadow-[0_0_10px_rgba(239,68,68,0.2)]",
     icon: "🔴",
   },
   at_risk: {
     color: "text-orange-400",
-    bg: "bg-orange-500/10",
-    border: "border-orange-500/20",
-    glow: "shadow-orange-500/10",
+    bg: "bg-orange-500/15",
+    border: "border-orange-500/30",
+    glow: "shadow-[0_0_10px_rgba(249,115,22,0.2)]",
     icon: "🟠",
   },
   churning: {
     color: "text-orange-400",
-    bg: "bg-orange-500/10",
-    border: "border-orange-500/20",
-    glow: "shadow-orange-500/10",
+    bg: "bg-orange-500/15",
+    border: "border-orange-500/30",
+    glow: "shadow-[0_0_10px_rgba(249,115,22,0.2)]",
     icon: "🟠",
   },
   drifting: {
     color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/20",
-    glow: "shadow-yellow-500/10",
+    bg: "bg-yellow-500/15",
+    border: "border-yellow-500/30",
+    glow: "shadow-[0_0_10px_rgba(234,179,8,0.2)]",
     icon: "🟡",
   },
   neutral: {
-    color: "text-stone-600",
-    bg: "bg-slate-500/10",
-    border: "border-slate-500/20",
-    glow: "shadow-slate-500/10",
+    color: "text-slate-400",
+    bg: "bg-slate-500/15",
+    border: "border-slate-500/30",
+    glow: "shadow-none",
     icon: "⚪",
   },
   stable: {
     color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    glow: "shadow-emerald-500/10",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/30",
+    glow: "shadow-[0_0_10px_rgba(16,185,129,0.2)]",
     icon: "🟢",
   },
   trusted: {
     color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    glow: "shadow-emerald-500/10",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/30",
+    glow: "shadow-[0_0_10px_rgba(16,185,129,0.2)]",
     icon: "🟢",
   },
   engaged: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    glow: "shadow-blue-500/10",
+    color: "text-electric-400",
+    bg: "bg-electric-500/15",
+    border: "border-electric-500/30",
+    glow: "shadow-[0_0_10px_rgba(59,130,246,0.2)]",
     icon: "🔵",
   },
   new: {
-    color: "text-amber-600",
-    bg: "bg-indigo-500/10",
-    border: "border-amber-600/20",
-    glow: "shadow-indigo-500/10",
+    color: "text-violet-400",
+    bg: "bg-violet-500/15",
+    border: "border-violet-500/30",
+    glow: "shadow-[0_0_10px_rgba(139,92,246,0.2)]",
     icon: "🟣",
   },
 };
@@ -85,9 +85,9 @@ export default function StateBadge({ state, size = "md" }: StateBadgeProps) {
     <span
       className={`
         inline-flex items-center gap-1.5 rounded-full font-semibold uppercase tracking-wider
-        border backdrop-blur-sm transition-all duration-300
+        border transition-all duration-300
         ${config.color} ${config.bg} ${config.border}
-        shadow-lg ${config.glow}
+        ${config.glow}
         ${sizeClass}
       `}
     >

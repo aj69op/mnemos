@@ -9,7 +9,7 @@ interface TimelineViewProps {
 const sentimentConfig: Record<string, { color: string; icon: string }> = {
   positive: { color: "text-emerald-400", icon: "😊" },
   negative: { color: "text-red-400", icon: "😟" },
-  neutral: { color: "text-stone-600", icon: "😐" },
+  neutral: { color: "text-slate-400", icon: "😐" },
   frustrated: { color: "text-orange-400", icon: "😤" },
   angry: { color: "text-red-500", icon: "😡" },
   satisfied: { color: "text-emerald-400", icon: "😌" },
@@ -34,7 +34,7 @@ export default function TimelineView({ events }: TimelineViewProps) {
     return (
       <div className="glass-panel p-8 text-center">
         <div className="text-3xl mb-3">📭</div>
-        <p className="text-stone-500 text-sm">No interactions recorded yet</p>
+        <p className="text-slate-500 text-sm">No interactions recorded yet</p>
       </div>
     );
   }
@@ -66,14 +66,14 @@ export default function TimelineView({ events }: TimelineViewProps) {
               style={{ animationDelay: `${i * 80}ms`, animationFillMode: "backwards" }}
             >
               {/* Timeline dot */}
-              <div className="absolute left-[18px] top-5 w-3 h-3 rounded-full bg-stone-50 border-2 border-amber-600/50 z-10 shadow-lg shadow-indigo-500/20" />
+              <div className="absolute left-[18px] top-5 w-3 h-3 rounded-full bg-slate-900 border-2 border-electric-500/50 z-10 shadow-lg shadow-indigo-500/20" />
 
               <div className="glass-panel glass-panel-hover p-4">
                 {/* Event header */}
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base">{eventIcon}</span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-stone-800">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-white">
                       {event.event_type?.replace(/_/g, " ")}
                     </span>
                     <span className={`text-xs ${sentiment.color}`}>
@@ -81,27 +81,27 @@ export default function TimelineView({ events }: TimelineViewProps) {
                     </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-stone-500 font-medium">{formattedDate}</div>
-                    <div className="text-[10px] text-stone-400">{formattedTime}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">{formattedDate}</div>
+                    <div className="text-[10px] text-slate-500">{formattedTime}</div>
                   </div>
                 </div>
 
                 {/* Raw text */}
-                <p className="text-sm text-stone-800 leading-relaxed mb-2">
+                <p className="text-sm text-slate-300 leading-relaxed mb-2">
                   {event.raw_text}
                 </p>
 
                 {/* Promises extracted */}
                 {event.promises && event.promises.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-white/5">
-                    <span className="text-[10px] uppercase tracking-wider text-amber-600 font-semibold">
+                    <span className="text-[10px] uppercase tracking-wider text-electric-400 font-semibold">
                       Promises Detected
                     </span>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {event.promises.map((p, j) => (
                         <span
                           key={j}
-                          className="text-xs bg-indigo-500/10 text-indigo-300 border border-amber-600/20 px-2 py-0.5 rounded-md"
+                          className="text-xs bg-indigo-500/10 text-indigo-300 border border-electric-500/20 px-2 py-0.5 rounded-md"
                         >
                           {p}
                         </span>

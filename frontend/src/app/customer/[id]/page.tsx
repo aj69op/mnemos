@@ -39,12 +39,12 @@ export default function CustomerProfile() {
 
   const getStateBadge = (st: string) => {
     switch (st) {
-      case "TRUSTED": return <span className="px-3 py-1 rounded text-sm font-semibold bg-green-500/20 text-green-700">TRUSTED</span>;
-      case "ENGAGED": return <span className="px-3 py-1 rounded text-sm font-semibold bg-blue-500/20 text-blue-700">ENGAGED</span>;
-      case "PROSPECT": return <span className="px-3 py-1 rounded text-sm font-semibold bg-yellow-500/20 text-yellow-700">PROSPECT</span>;
-      case "AT_RISK": return <span className="px-3 py-1 rounded text-sm font-semibold bg-red-500/20 text-red-700">AT_RISK</span>;
-      case "CHURNED": return <span className="px-3 py-1 rounded text-sm font-semibold bg-gray-500/20 text-gray-700">CHURNED</span>;
-      default: return <span className="px-3 py-1 rounded text-sm font-semibold bg-stone-200 text-stone-800">{st}</span>;
+      case "TRUSTED": return <span className="px-3 py-1 rounded border border-emerald-500/30 text-sm font-bold bg-emerald-500/15 text-emerald-400">TRUSTED</span>;
+      case "ENGAGED": return <span className="px-3 py-1 rounded border border-electric-500/30 text-sm font-bold bg-electric-500/15 text-electric-400">ENGAGED</span>;
+      case "PROSPECT": return <span className="px-3 py-1 rounded border border-violet-500/30 text-sm font-bold bg-violet-500/15 text-violet-400">PROSPECT</span>;
+      case "AT_RISK": return <span className="px-3 py-1 rounded border border-red-500/30 text-sm font-bold bg-red-500/15 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)]">AT_RISK</span>;
+      case "CHURNED": return <span className="px-3 py-1 rounded border border-slate-500/30 text-sm font-bold bg-slate-500/15 text-slate-400">CHURNED</span>;
+      default: return <span className="px-3 py-1 rounded border border-slate-500/30 text-sm font-bold bg-white/5 text-slate-300">{st}</span>;
     }
   };
 
@@ -69,48 +69,60 @@ export default function CustomerProfile() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-stone-50 text-amber-950 p-8 flex items-center justify-center">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4 animate-fade-in">
+        <div className="w-10 h-10 border-2 border-electric-500/30 border-t-electric-500 rounded-full animate-spin" />
+        <p className="text-slate-400 text-sm tracking-widest uppercase">Loading Profile</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen text-stone-900 font-sans">
+    <div className="min-h-screen text-slate-200 font-sans">
       <main className="w-full space-y-12">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-xl font-bold tracking-tight text-amber-950 hover:text-amber-600 transition">Mnemos</Link>
-            <span className="text-stone-400">/</span>
-            <h1 className="text-2xl font-bold text-stone-900">{id}</h1>
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-8 h-8 flex items-center justify-center drop-shadow-[0_0_5px_rgba(59,130,246,0.5)] group-hover:drop-shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-300">
+                <img src="/logo_transparent.png" alt="Mnemos Logo" className="w-8 h-8 object-contain" />
+              </div>
+              <span className="text-xl font-bold tracking-tight text-white group-hover:text-electric-400 transition-colors">Mnemos</span>
+            </Link>
+            <span className="text-slate-600">/</span>
+            <h1 className="text-2xl font-bold text-white">{id}</h1>
           </div>
           {getStateBadge(state)}
         </div>
         {/* Commitments Section */}
         <section>
-          <h2 className="text-xl font-semibold text-amber-950 mb-4">Open Commitments</h2>
+          <h2 className="text-xl font-semibold text-white mb-4">Open Commitments</h2>
           {commitments.filter(c => !c.resolved).length === 0 ? (
-            <div className="p-6 rounded-lg bg-white border border-stone-200 text-stone-600">
+            <div className="p-6 rounded-lg glass-panel text-slate-400">
               No open commitments.
             </div>
           ) : (
             <div className="grid gap-4">
               {commitments.filter(c => !c.resolved).map((c, i) => (
-                <div key={i} className="p-4 rounded-lg bg-white border border-stone-200 space-y-3">
+                <div key={i} className="p-4 rounded-lg glass-panel space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="px-2 py-0.5 rounded text-xs bg-stone-100 text-stone-700 uppercase">{c.promise_type}</span>
-                      <p className="text-stone-900 font-medium">{c.description}</p>
+                      <span className="px-2 py-0.5 rounded text-xs bg-white/5 border border-white/10 text-slate-300 uppercase">{c.promise_type}</span>
+                      <p className="text-slate-200 font-medium">{c.description}</p>
                     </div>
-                    <span className="text-sm text-stone-600">Made by {c.made_by}</span>
+                    <span className="text-sm text-slate-400">Made by <span className="text-slate-300">{c.made_by}</span></span>
                   </div>
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-stone-600">
-                      <span>Entropy Score: {c.entropy_score.toFixed(2)}</span>
-                      <span>Severity: {c.severity.toUpperCase()}</span>
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Entropy Score: <span className="text-white font-mono">{c.entropy_score.toFixed(2)}</span></span>
+                      <span>Severity: <span className="text-white">{c.severity.toUpperCase()}</span></span>
                     </div>
-                    <div className="h-1.5 w-full bg-stone-200 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-white/5 border border-white/10 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full ${
-                          c.severity === 'critical' ? 'bg-red-500' :
-                          c.severity === 'high' ? 'bg-orange-500' :
-                          c.severity === 'medium' ? 'bg-yellow-500' : 'bg-stone-400'
+                          c.severity === 'critical' ? 'bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]' :
+                          c.severity === 'high' ? 'bg-gradient-to-r from-orange-600 to-amber-400' :
+                          c.severity === 'medium' ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' : 'bg-gradient-to-r from-electric-600 to-blue-400'
                         }`}
                         style={{ width: `${Math.min((c.entropy_score / 1.5) * 100, 100)}%` }}
                       ></div>
@@ -124,24 +136,24 @@ export default function CustomerProfile() {
 
         {/* Timeline Section */}
         <section>
-          <h2 className="text-xl font-semibold text-amber-950 mb-4">Interaction Timeline</h2>
-          <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-stone-300 before:to-transparent">
+          <h2 className="text-xl font-semibold text-white mb-4">Interaction Timeline</h2>
+          <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-indigo-500/30 before:via-violet-500/20 before:to-transparent">
             {timeline.map((t, i) => (
-              <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full border border-stone-200 bg-white text-lg shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow z-10">
+              <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-electric-500/50 bg-slate-900 text-lg shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-lg shadow-indigo-500/20 z-10">
                   {getSentimentIcon(t.sentiment)}
                 </div>
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-lg bg-white border border-stone-200">
+                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-lg glass-panel glass-panel-hover">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-mono text-stone-600">{new Date(t.timestamp).toLocaleString()}</span>
-                    <span className="px-2 py-0.5 rounded text-xs bg-stone-100 text-stone-700 uppercase">{t.event_type}</span>
+                    <span className="text-xs font-mono text-slate-400">{new Date(t.timestamp).toLocaleString()}</span>
+                    <span className="px-2 py-0.5 rounded text-xs bg-white/5 border border-white/10 text-slate-300 uppercase">{t.event_type}</span>
                   </div>
-                  <p className="text-stone-800 text-sm mb-3">{t.raw_text}</p>
+                  <p className="text-slate-300 text-sm mb-3">{t.raw_text}</p>
                   {t.promises.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-stone-200/50 space-y-2">
-                      <span className="text-xs font-semibold text-amber-600">Extracted Promises:</span>
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <span className="text-xs font-semibold text-electric-400">Extracted Promises:</span>
                       {t.promises.map((p, j) => (
-                        <div key={j} className="text-xs text-stone-600 pl-2 border-l-2 border-stone-300">
+                        <div key={j} className="text-xs text-slate-300 pl-2 border-l-2 border-electric-500/30">
                           {p.description} ({p.made_by})
                         </div>
                       ))}
@@ -154,30 +166,43 @@ export default function CustomerProfile() {
         </section>
 
         {/* Query Box */}
-        <section className="pt-8 border-t border-stone-200">
-          <h2 className="text-xl font-semibold text-amber-950 mb-4">Query Entity</h2>
+        <section className="pt-8 border-t border-white/10">
+          <h2 className="text-xl font-semibold text-white mb-4">Query Entity</h2>
           <form onSubmit={handleQuery} className="flex gap-3">
             <input 
               type="text" 
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Ask a question about their interactions..."
-              className="flex-1 bg-white border border-stone-200 rounded-lg px-4 py-2 text-stone-900 focus:outline-none focus:border-amber-600 transition"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-electric-500/50 focus:ring-2 focus:ring-electric-500/20 transition-all duration-200"
             />
             <button 
               type="submit" 
               disabled={querying || !query.trim()}
-              className="bg-amber-800 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition"
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:from-slate-700 disabled:to-slate-700 text-white px-6 py-2 rounded-xl font-medium transition-all duration-200 disabled:opacity-50"
             >
-              {querying ? "Searching..." : "Ask"}
+              {querying ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Searching...
+                </span>
+              ) : "Ask"}
             </button>
           </form>
           {answer && (
-            <div className="mt-6 p-5 rounded-lg bg-white border border-stone-200">
+            <div className="mt-6 p-5 rounded-xl bg-gradient-to-br from-indigo-500/5 to-violet-500/5 border border-electric-500/20 animate-slide-up">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-amber-600 font-semibold">Mnemos AI</span>
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg>
+                </div>
+                <span className="text-[10px] text-electric-400 uppercase tracking-wider font-semibold">Mnemos AI</span>
               </div>
-              <p className="text-stone-800 whitespace-pre-wrap">{answer}</p>
+              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{answer}</p>
             </div>
           )}
         </section>

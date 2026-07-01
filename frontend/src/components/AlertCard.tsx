@@ -14,22 +14,22 @@ const severityConfig: Record<string, { accent: string; icon: string; ring: strin
   critical: {
     accent: "border-l-red-500",
     icon: "🚨",
-    ring: "ring-red-500/10",
+    ring: "ring-red-500/30",
   },
   high: {
     accent: "border-l-orange-500",
     icon: "⚠️",
-    ring: "ring-orange-500/10",
+    ring: "ring-orange-500/30",
   },
   medium: {
     accent: "border-l-yellow-500",
     icon: "📋",
-    ring: "ring-yellow-500/10",
+    ring: "ring-yellow-500/30",
   },
   low: {
-    accent: "border-l-indigo-500",
+    accent: "border-l-electric-500",
     icon: "ℹ️",
-    ring: "ring-indigo-500/10",
+    ring: "ring-electric-500/30",
   },
 };
 
@@ -51,22 +51,21 @@ export default function AlertCard({ alert, index }: AlertCardProps) {
           <div className="flex items-center gap-2.5">
             <span className="text-lg">{config.icon}</span>
             <div>
-              <h3 className="font-semibold text-amber-950 text-sm tracking-tight">
+              <h3 className="font-semibold text-white text-sm tracking-tight">
                 {alert.entity_id}
               </h3>
-              <span className="text-[10px] text-stone-500 uppercase tracking-wider font-medium">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
                 {alert.entity_type}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Removed relationship_state as it's not on Alert */}
             <SeverityPill severity={alert.severity} />
           </div>
         </div>
 
         {/* Promise description */}
-        <p className="text-sm text-stone-800 mb-3 leading-relaxed line-clamp-2">
+        <p className="text-sm text-slate-300 mb-3 leading-relaxed line-clamp-2">
           {alert.promise_description}
         </p>
 
@@ -77,10 +76,10 @@ export default function AlertCard({ alert, index }: AlertCardProps) {
 
         {/* Footer meta */}
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-stone-500 uppercase tracking-wider">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">
             {alert.promise_type?.replace(/_/g, " ")}
           </span>
-          <div className="flex items-center gap-1.5 text-xs text-stone-500">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12,6 12,12 16,14" />
@@ -97,10 +96,10 @@ export default function AlertCard({ alert, index }: AlertCardProps) {
 
 function SeverityPill({ severity }: { severity: string }) {
   const colorMap: Record<string, string> = {
-    critical: "bg-red-500/15 text-red-400 border-red-500/20",
-    high: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-    medium: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
-    low: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+    critical: "bg-red-500/15 text-red-400 border-red-500/30",
+    high: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    medium: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    low: "bg-electric-500/15 text-electric-400 border-electric-500/30",
   };
   const cls = colorMap[severity?.toLowerCase()] || colorMap.medium;
 

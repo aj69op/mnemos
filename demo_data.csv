@@ -1,0 +1,21 @@
+entity_id,entity_type,date,text
+acme_corp,Customer,2026-05-15,Had the kickoff call with Sarah. Everything looks solid for Q3 rollout.
+acme_corp,Customer,2026-05-25,Sarah emailed saying they need a slight extension on invoice #409. Promised to process the payment by 2026-05-30.
+acme_corp,Customer,2026-06-05,Still haven't received the wire. Called their AP department and they promised to expedite the payment by 2026-06-10.
+acme_corp,Customer,2026-06-15,Radio silence. Emailed Sarah and AP twice this week. Frustration is high on our end.
+acme_corp,Customer,2026-06-20,Sent formal notice of account suspension if balance isn't cleared.
+acme_corp,Customer,2026-06-22,Legal team is now involved. Not looking good.
+globex_ltd,Customer,2026-05-30,Quarterly review went exceptionally well. They are loving the new dashboard features.
+globex_ltd,Customer,2026-06-22,CTO wants to discuss upgrading to the Enterprise tier next month. Huge win.
+initech_inc,Customer,2026-05-20,Onboarding wrapped up. Promised to ship the physical welcome kit by 2026-05-25.
+initech_inc,Customer,2026-06-10,Bill called furious about the v2.4 patch breaking their integration. Promised to push a hotfix by 2026-06-15.
+initech_inc,Customer,2026-06-24,Absolute disaster. The hotfix didn't resolve the issue and Bill is threatening to cancel the contract. Escalating to VP immediately.
+umbrella_co,Vendor,2026-05-12,Placed PO-992 for the servers. They promised to finalize delivery by 2026-05-20.
+umbrella_co,Vendor,2026-05-25,Tracking shows stuck in transit. Account manager apologized and promised to ensure delivery by 2026-06-01.
+umbrella_co,Vendor,2026-06-10,Still no servers. This is holding up our entire staging environment. They promised to complete delivery by 2026-06-15.
+stark_supply,Vendor,2026-06-01,Components arrived 4 days ahead of schedule. Flawless execution as always.
+stark_supply,Vendor,2026-06-20,Tony reached out about an upcoming silicon shortage to help us pre-order. Very proactive.
+stark_supply,Vendor,2026-06-25,Just placed a massive bulk order for Q4. They gave us a nice 5% volume discount.
+wayne_retail,Customer,2026-06-18,Contracts are signed! They promised to schedule the kickoff meeting by 2026-06-23.
+wayne_retail,Customer,2026-06-20,Bruce sent over their technical requirements. Reviewing with the engineering team.
+wayne_retail,Customer,2026-06-24,Engineering approved the requirements. Moving forward with the setup.

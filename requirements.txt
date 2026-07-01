@@ -1,0 +1,8 @@
+fastapi
+httpx
+uvicorn[standard]
+google-generativeai
+apscheduler
+python-multipart
+groq
+python-dotenv

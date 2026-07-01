@@ -143,12 +143,6 @@ class QueryResponse(BaseModel):
 
 # ─── Route 0: GET / ───────────────────────────────────────────────────────────
 
-@app.post("/admin/seed")
-async def run_seed():
-    import seed_demo
-    seed_demo.main()
-    return {"status": "seeded"}
-
 @app.get("/")
 async def root():
     """Root endpoint to verify the API is running."""

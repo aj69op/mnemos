@@ -32,7 +32,8 @@ from dataclasses import asdict
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from demo_gate import require_write_access
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -142,6 +143,12 @@ class QueryResponse(BaseModel):
 
 # ─── Route 0: GET / ───────────────────────────────────────────────────────────
 
+@app.post("/admin/seed")
+async def run_seed():
+    import seed_demo
+    seed_demo.main()
+    return {"status": "seeded"}
+
 @app.get("/")
 async def root():
     """Root endpoint to verify the API is running."""
@@ -154,7 +161,7 @@ async def root():
 # ─── Route 1: POST /ingest ────────────────────────────────────────────────────
 
 @app.post("/ingest", response_model=IngestResponse)
-async def ingest_event(req: IngestRequest):
+async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
     """
     Ingest a raw interaction note.
     1. Validate date if provided (#5 fix — 422 on bad date)
@@ -445,7 +452,7 @@ async def list_entities():
 # ─── Route 7: POST /import-csv ────────────────────────────────────────────────
 
 @app.post("/import-csv")
-async def import_csv(file: UploadFile = File(...)):
+async def import_csv(file: UploadFile = File(...), _=Depends(require_write_access)):
     """
     Bulk import interactions from a CSV file.
     Expected columns: entity_id, entity_type, date, text

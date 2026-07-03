@@ -9,12 +9,11 @@ export default function EntitiesPage() {
   const [entities, setEntities] = useState<any[]>([]);
 
   useEffect(() => {
-    // We would fetch real entities here
-    /*
     api.getEntities().then(res => {
-      if (res && res.entities) setEntities(res.entities);
+      if (res && res.entities) {
+        setEntities(res.entities);
+      }
     });
-    */
   }, []);
 
   return (
@@ -95,57 +94,73 @@ export default function EntitiesPage() {
             </tr>
           </thead>
           <tbody>
-            {[
-              { id: 'CUST-0042', type: 'Customer', state: 'TRUSTED', stateClass: 'bg-green-50 text-green-800', typeClass: 'text-green-800 border-green-200', events: 84, time: '2 days ago', promises: 1, pColor: 'bg-green-500', pWidth: '85%' },
-              { id: 'CUST-0087', type: 'Customer', state: 'AT_RISK', stateClass: 'bg-amber-50 text-amber-700', typeClass: 'text-amber-700 border-amber-200', events: 47, time: '18 days ago', promises: 3, pColor: 'bg-amber-500', pWidth: '75%', bg: 'bg-amber-50/50' },
-              { id: 'VEND-1188', type: 'Vendor', state: 'TRUSTED', stateClass: 'bg-green-50 text-green-800', typeClass: 'text-orange-800 border-orange-200', events: 112, time: '1 day ago', promises: 0, pColor: 'bg-green-500', pWidth: '20%' },
-              { id: 'CUST-1042', type: 'Customer', state: 'ENGAGED', stateClass: 'bg-cyan-50 text-teal-700', typeClass: 'text-green-800 border-green-200', events: 63, time: '5 days ago', promises: 2, pColor: 'bg-teal-500', pWidth: '60%', bg: 'bg-gray-50/50' },
-            ].map((e, i) => (
-              <tr key={i} className={`group shadow-[0_12px_28px_rgba(17,17,17,0.08)] transition-all duration-300 hover:scale-[1.01] ${e.bg || 'bg-white'}`}>
-                <td className="p-4 rounded-l-xl">
-                  <span className="font-semibold text-[#111111] text-sm">
-                    {e.id}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className={`font-medium rounded-sm text-xs border px-2 py-0.5 ${e.typeClass}`}>
-                    {e.type}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className={`font-medium rounded-full text-xs px-2 py-0.5 ${e.stateClass}`}>
-                    {e.state}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className="text-[#111111] text-sm">
-                    {e.events}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className="text-[#111111] text-sm">
-                    {e.time}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-full bg-gray-200 w-20 h-1.5 overflow-hidden">
-                      <div className={`transition-all duration-300 rounded-full h-full ${e.pColor}`} style={{ width: e.pWidth }} />
-                    </div>
-                    <span className="text-[#111111] text-xs">
-                      {e.promises}
-                    </span>
-                  </div>
-                </td>
-                <td className="p-4 rounded-r-xl">
-                  <Link href={`/customer/${e.id}`}>
-                    <button className="shadow-[0_12px_24px_rgba(17,17,17,0.12)] transition-all duration-300 font-medium rounded-md bg-white text-[#111111] text-xs border-[#1E3A2F] border px-3 py-1.5 hover:bg-neutral-50 hover:-translate-y-0.5">
-                      View Timeline
-                    </button>
-                  </Link>
+            {entities.length > 0 ? (
+              entities.map((e, i) => {
+                const isCustomer = e.entity_type === 'Customer';
+                const isTrusted = e.state === 'TRUSTED';
+                const isAtRisk = e.state === 'AT_RISK';
+                const isEngaged = e.state === 'ENGAGED';
+                const typeClass = isCustomer ? 'text-green-800 border-green-200' : 'text-orange-800 border-orange-200';
+                const stateClass = isTrusted ? 'bg-green-50 text-green-800' : isAtRisk ? 'bg-amber-50 text-amber-700' : isEngaged ? 'bg-cyan-50 text-teal-700' : 'bg-gray-50 text-gray-700';
+                const bgClass = isAtRisk ? 'bg-amber-50/50' : isEngaged ? 'bg-gray-50/50' : 'bg-white';
+                const pColor = isTrusted ? 'bg-green-500' : isAtRisk ? 'bg-amber-500' : 'bg-teal-500';
+                const maxPromises = 5;
+                const pWidth = `${Math.min((e.open_promises / maxPromises) * 100, 100)}%`;
+
+                return (
+                  <tr key={i} className={`group shadow-[0_12px_28px_rgba(17,17,17,0.08)] transition-all duration-300 hover:scale-[1.01] ${bgClass}`}>
+                    <td className="p-4 rounded-l-xl">
+                      <span className="font-semibold text-[#111111] text-sm">
+                        {e.entity_id}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`font-medium rounded-sm text-xs border px-2 py-0.5 ${typeClass}`}>
+                        {e.entity_type}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`font-medium rounded-full text-xs px-2 py-0.5 ${stateClass}`}>
+                        {e.state}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[#111111] text-sm">
+                        {e.event_count}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-[#111111] text-sm">
+                        {e.last_interaction}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-full bg-gray-200 w-20 h-1.5 overflow-hidden">
+                          <div className={`transition-all duration-300 rounded-full h-full ${pColor}`} style={{ width: pWidth }} />
+                        </div>
+                        <span className="text-[#111111] text-xs">
+                          {e.open_promises}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 rounded-r-xl">
+                      <Link href={`/dashboard/customer/${e.entity_id}`}>
+                        <button className="shadow-[0_12px_24px_rgba(17,17,17,0.12)] transition-all duration-300 font-medium rounded-md bg-white text-[#111111] text-xs border-[#1E3A2F] border px-3 py-1.5 hover:bg-neutral-50 hover:-translate-y-0.5">
+                          View Timeline
+                        </button>
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-gray-500">
+                  No entities found.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

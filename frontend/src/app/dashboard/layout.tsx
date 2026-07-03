@@ -1,8 +1,13 @@
+"use client";
+
 import { Home, Network, Trash2, Upload, Users, Zap } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <div className="bg-white text-neutral-950 w-full min-h-screen overflow-visible">
       <div className="min-h-screen bg-white flex w-full">
@@ -28,15 +33,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </Link>
             <nav className="flex flex-col gap-1">
-              <Link href="/dashboard" className="transition-all duration-300 rounded-md text-gray-500 hover:text-black flex px-3 py-2 items-center gap-3">
+              <Link href="/dashboard" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Home className="w-4 h-4" />
                 <span className="text-sm">Dashboard</span>
               </Link>
-              <Link href="/dashboard/entities" className="shadow-[0_14px_30px_rgba(17,17,17,0.10)] transition-all duration-300 rounded-md bg-white text-[#111111] border-l-2 border-[#1E3A2F] flex px-3 py-2 items-center gap-3">
+              <Link href="/dashboard/entities" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname.startsWith('/dashboard/entities') || pathname.startsWith('/dashboard/customer') ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Users className="w-4 h-4" />
-                <span className="font-semibold text-sm">Entities</span>
+                <span className="text-sm">Entities</span>
               </Link>
-              <Link href="/import" className="transition-all duration-300 rounded-md text-gray-500 hover:text-black flex px-3 py-2 items-center gap-3">
+              <Link href="/dashboard/import" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard/import' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Upload className="w-4 h-4" />
                 <span className="text-sm">Import</span>
               </Link>

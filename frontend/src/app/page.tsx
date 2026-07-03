@@ -1,260 +1,205 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { api, Alert, Summary, Entity } from "@/lib/api";
+import { useEffect } from "react";
+import { Network, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 
-export default function Dashboard() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
-  const fetchData = async () => {
-    try {
-      const [alertsData, entitiesData] = await Promise.all([
-        api.getAlerts(),
-        api.getEntities(),
-      ]);
-      setAlerts(alertsData.alerts || []);
-      setSummary(alertsData.summary || null);
-      setEntities(entitiesData.entities || []);
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const severityConfig: Record<string, { dot: string; badge: string; bar: string; glow: string }> = {
-    critical: { dot: "bg-red-500", badge: "bg-red-500/20 text-red-400 border-red-500/30", bar: "bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]", glow: "shadow-red-500/20" },
-    high:     { dot: "bg-orange-500", badge: "bg-orange-500/20 text-orange-400 border-orange-500/30", bar: "bg-gradient-to-r from-orange-600 to-amber-400", glow: "shadow-orange-500/20" },
-    medium:   { dot: "bg-yellow-500", badge: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", bar: "bg-gradient-to-r from-yellow-600 to-yellow-400", glow: "shadow-yellow-500/20" },
-    low:      { dot: "bg-electric-500", badge: "bg-electric-500/20 text-electric-400 border-electric-500/30", bar: "bg-gradient-to-r from-electric-600 to-blue-400", glow: "shadow-electric-500/20" },
-  };
-
-  const stateConfig: Record<string, { label: string; cls: string }> = {
-    TRUSTED:  { label: "TRUSTED",  cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    ENGAGED:  { label: "ENGAGED",  cls: "bg-electric-500/15 text-blue-400 border-electric-500/30" },
-    PROSPECT: { label: "PROSPECT", cls: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
-    AT_RISK:  { label: "AT RISK",  cls: "bg-red-500/15 text-red-400 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]" },
-    CHURNED:  { label: "CHURNED",  cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-  };
-
-  const atRiskCount = entities.filter(e => e.state === "AT_RISK").length;
-  const criticalCount = summary?.critical || 0;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 animate-fade-in">
-          <div className="w-10 h-10 border-2 border-electric-500/30 border-t-electric-500 rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm tracking-widest uppercase">Initializing Mnemos</p>
+export default function LandingPage() {
+  return (
+    <div>
+      <div className="bg-neutral-950 text-neutral-50 w-full overflow-hidden min-h-screen">
+        <div className="relative min-h-[956px] bg-white/5 text-white w-full">
+          <div className="bg-white/5 absolute inset-0" />
+          <div className="bg-white/5 absolute inset-0" />
+          <div className="bg-white/5 absolute inset-0" />
+          <div className="relative z-10 flex px-8 pt-8 justify-between items-start">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-2xl bg-white/10 border-white/10 border flex justify-center items-center">
+                <div className="relative w-6 h-6">
+                  <div className="left-1/2 top-1/2 w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-white/80 border absolute" />
+                  <div className="left-[18%] top-[18%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white absolute" />
+                  <div className="right-[14%] top-[28%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white/90 absolute" />
+                  <div className="left-[42%] bottom-[12%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white/90 absolute" />
+                  <div className="left-[24%] top-[28%] w-[42%] rotate-[28deg] bg-white/80 absolute h-px" />
+                  <div className="left-[34%] top-[44%] w-[40%] rotate-[-34deg] bg-white/80 absolute h-px" />
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <div className="drop-shadow-[0_0_18px_rgba(255,255,255,0.12)] font-bold text-white text-[28px] leading-8 tracking-[-0.64px]">
+                  Mnemos
+                </div>
+                <div className="uppercase text-white/45 text-xs leading-4 tracking-[5.12px]">
+                  Relationship Intelligence
+                </div>
+              </div>
+            </div>
+            <div className="shadow-[0_24px_70px_rgba(0,0,0,0.72)] backdrop-blur-md rounded-full bg-white/10 border-white/10 border flex px-4 py-2 items-center gap-3">
+              <span className="relative w-3 h-3 flex">
+                <span className="inline-flex animate-ping opacity-70 rounded-full bg-[#ff1744] absolute w-full h-full" />
+                <span className="relative inline-flex w-3 h-3 shadow-[0_0_18px_rgba(255,23,68,0.95)] rounded-full bg-[#ff1744]" />
+              </span>
+              <span className="font-medium text-white text-sm leading-5">
+                Agent Live
+              </span>
+            </div>
+          </div>
+          <div className="relative z-10 max-w-[1140px] flex mx-auto px-8 pt-10 flex-col items-center w-full">
+            <div className="max-w-[860px] text-center">
+              <div className="drop-shadow-[0_0_28px_rgba(255,255,255,0.16)] font-extrabold text-white text-7xl tracking-tight">
+                Your Relationships. Remembered.
+              </div>
+              <div className="max-w-[760px] text-white/55 text-xl leading-8 mx-auto mt-5">
+                AI-powered relationship intelligence that never forgets a
+                promise.
+              </div>
+              <div className="flex mt-8 justify-center items-center gap-4">
+                <Link href="/dashboard">
+                  <Button className="shadow-[0_18px_50px_rgba(255,255,255,0.18),0_24px_80px_rgba(0,0,0,0.55)] transition-transform duration-300 font-semibold rounded-full bg-white text-black text-base px-7 h-12 hover:bg-neutral-200">
+                    Get Started
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  className="shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md transition-transform duration-300 font-semibold rounded-full bg-white/10 text-white text-base border-white/20 px-7 h-12 hover:bg-white/20"
+                >
+                  Watch Demo
+                </Button>
+              </div>
+            </div>
+            <div className="relative flex mt-10 justify-center items-center w-full h-[520px]">
+              <div className="blur-3xl rounded-full bg-white/5 absolute inset-x-10 top-8 h-[420px]" />
+              <div className="rounded-[40px] bg-white/5 absolute inset-0" />
+              <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-[0_0_120px_rgba(255,255,255,0.08)] rounded-full border-white/10 border absolute w-[460px] h-[460px]" />
+              <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 blur-[1px] rounded-full border-white/5 border absolute w-[620px] h-[620px]" />
+              <div className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-40 rounded-full border-white/5 border absolute w-[760px] h-[760px]" />
+              <div className="left-1/2 top-[52%] -translate-x-1/2 bg-white/10 absolute w-[760px] h-px" />
+              <div className="left-1/2 top-[52%] -translate-x-1/2 rotate-45 bg-white/10 absolute w-[760px] h-px" />
+              <div className="left-1/2 top-[52%] -translate-x-1/2 -rotate-45 bg-white/10 absolute w-[760px] h-px" />
+              <div className="left-1/2 top-[52%] -translate-x-1/2 rotate-90 bg-white/10 absolute w-[760px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 rotate-[12deg] shadow-[0_0_18px_rgba(255,255,255,0.45)] rounded-full bg-white/80 absolute w-[220px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 -rotate-[12deg] shadow-[0_0_18px_rgba(255,255,255,0.45)] rounded-full bg-white/80 absolute w-[220px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 rotate-[28deg] shadow-[0_0_18px_rgba(255,255,255,0.35)] rounded-full bg-white/70 absolute w-[180px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 -rotate-[28deg] shadow-[0_0_18px_rgba(255,255,255,0.35)] rounded-full bg-white/70 absolute w-[180px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 rotate-[52deg] shadow-[0_0_18px_rgba(255,255,255,0.3)] rounded-full bg-white/60 absolute w-[130px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 -rotate-[52deg] shadow-[0_0_18px_rgba(255,255,255,0.3)] rounded-full bg-white/60 absolute w-[130px] h-px" />
+              <div className="left-[50%] top-[48%] -translate-x-1/2 -translate-y-1/2 shadow-[0_30px_100px_rgba(0,0,0,0.65),0_0_80px_rgba(255,255,255,0.08)] backdrop-blur-md rounded-full bg-white/10 border-white/20 border flex absolute px-8 py-7 flex-col items-center gap-2">
+                <div className="uppercase text-white/35 text-xs tracking-[6.4px]">
+                  Core Memory
+                </div>
+                <div className="font-bold text-white text-3xl tracking-[-0.64px]">
+                  Mnemos
+                </div>
+                <div className="text-white/65 text-sm">
+                  Live hierarchical relationship graph
+                </div>
+              </div>
+              <div className="left-[24%] top-[28%] shadow-[0_0_50px_rgba(255,255,255,0.12),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-sm rounded-full bg-white/10 border-white/20 border flex absolute px-5 py-4 flex-col items-center gap-2">
+                <div className="w-4 h-4 shadow-[0_0_18px_rgba(255,255,255,0.85)] rounded-full bg-white" />
+                <div className="font-semibold text-white text-xs tracking-[3.2px]">
+                  TRUSTED
+                </div>
+              </div>
+              <div className="left-[72%] top-[26%] shadow-[0_0_50px_rgba(255,255,255,0.12),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-sm rounded-full bg-white/10 border-white/20 border flex absolute px-5 py-4 flex-col items-center gap-2">
+                <div className="w-4 h-4 shadow-[0_0_18px_rgba(255,255,255,0.85)] rounded-full bg-white" />
+                <div className="font-semibold text-white text-xs tracking-[3.2px]">
+                  ENGAGED
+                </div>
+              </div>
+              <div className="left-[18%] top-[58%] shadow-[0_0_60px_rgba(255,23,68,0.35),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-sm rounded-full bg-[#ff1744]/10 border-[#ff1744]/30 border flex absolute px-5 py-4 flex-col items-center gap-2">
+                <div className="relative w-4 h-4 shadow-[0_0_22px_rgba(255,23,68,0.95)] rounded-full bg-[#ff1744]">
+                  <span className="animate-ping opacity-70 rounded-full bg-[#ff1744] absolute inset-0" />
+                </div>
+                <div className="font-semibold text-[#ff1744] text-xs tracking-[3.2px]">
+                  CUST-0087
+                </div>
+              </div>
+              <div className="left-[76%] top-[58%] shadow-[0_0_60px_rgba(255,23,68,0.35),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-sm rounded-full bg-[#ff1744]/10 border-[#ff1744]/30 border flex absolute px-5 py-4 flex-col items-center gap-2">
+                <div className="relative w-4 h-4 shadow-[0_0_22px_rgba(255,23,68,0.95)] rounded-full bg-[#ff1744]">
+                  <span className="animate-ping opacity-70 rounded-full bg-[#ff1744] absolute inset-0" />
+                </div>
+                <div className="font-semibold text-[#ff1744] text-xs tracking-[3.2px]">
+                  CUST-0031
+                </div>
+              </div>
+              <div className="left-[50%] top-[72%] -translate-x-1/2 shadow-[0_0_50px_rgba(255,255,255,0.12),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-sm rounded-full bg-white/10 border-white/20 border flex absolute px-5 py-4 flex-col items-center gap-2">
+                <div className="w-4 h-4 shadow-[0_0_18px_rgba(255,255,255,0.35)] rounded-full bg-white/70" />
+                <div className="font-semibold text-white/75 text-xs tracking-[3.2px]">
+                  PROSPECT
+                </div>
+              </div>
+              <div className="left-[30%] top-[40%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white absolute" />
+              <div className="left-[38%] top-[34%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white/80 absolute" />
+              <div className="left-[62%] top-[34%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white/80 absolute" />
+              <div className="left-[70%] top-[40%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white absolute" />
+              <div className="left-[42%] top-[66%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white/70 absolute" />
+              <div className="left-[58%] top-[66%] w-2 h-2 shadow-[0_0_12px_rgba(255,255,255,0.9)] rounded-full bg-white/70 absolute" />
+            </div>
+            <div className="grid grid-cols-4 pt-2 pb-8 gap-4 w-full">
+              <Card className="shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-3xl bg-white/5 border-white/10 p-5">
+                <CardContent className="p-0 flex flex-col gap-3">
+                  <div className="text-white/70 flex items-center gap-3">
+                    <Users className="w-5 h-5 text-white" />
+                    <span className="uppercase text-xs tracking-[5.6px]">
+                      Entities Tracked
+                    </span>
+                  </div>
+                  <div className="font-bold text-white text-4xl tracking-tighter">
+                    284
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-3xl bg-white/5 border-white/10 p-5">
+                <CardContent className="p-0 flex flex-col gap-3">
+                  <div className="text-white/70 flex items-center gap-3">
+                    <Network className="w-5 h-5 text-white/70" />
+                    <span className="uppercase text-xs tracking-[5.6px]">
+                      Memory Nodes
+                    </span>
+                  </div>
+                  <div className="font-bold text-white text-4xl tracking-tighter">
+                    1,284
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-3xl bg-white/5 border-[#ff1744]/20 p-5">
+                <CardContent className="p-0 flex flex-col gap-3">
+                  <div className="text-white/70 flex items-center gap-3">
+                    <span className="relative w-3 h-3 flex">
+                      <span className="inline-flex animate-ping opacity-70 rounded-full bg-[#ff1744] absolute w-full h-full" />
+                      <span className="relative inline-flex w-3 h-3 shadow-[0_0_18px_rgba(255,23,68,0.9)] rounded-full bg-[#ff1744]" />
+                    </span>
+                    <span className="uppercase text-xs tracking-[5.6px]">
+                      Critical Alerts
+                    </span>
+                  </div>
+                  <div className="font-bold text-[#ff1744] text-4xl tracking-tighter">
+                    12
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-3xl bg-white/5 border-white/10 p-5">
+                <CardContent className="p-0 flex flex-col gap-3">
+                  <div className="text-white/70 flex items-center gap-3">
+                    <span className="relative w-3 h-3 flex">
+                      <span className="inline-flex animate-ping opacity-70 rounded-full bg-emerald-400 absolute w-full h-full" />
+                      <span className="relative inline-flex w-3 h-3 shadow-[0_0_18px_rgba(74,222,128,0.9)] rounded-full bg-emerald-400" />
+                    </span>
+                    <span className="uppercase text-xs tracking-[5.6px]">
+                      Agent Live 24/7
+                    </span>
+                  </div>
+                  <div className="font-bold text-white text-4xl tracking-tighter">
+                    Live
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="shadow-[0_18px_50px_rgba(0,0,0,0.65)] backdrop-blur-md rounded-full bg-white/10 text-white/55 text-sm border-white/20 border absolute left-8 bottom-6 px-4 py-2">
+              Powered by Cognee
+            </div>
+          </div>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen text-slate-200">
-      <main className="w-full">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            {/* Live indicator */}
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
-              <span>Live · refreshes every 30s</span>
-            </div>
-            {/* Critical badge */}
-            {criticalCount > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
-                </span>
-                {criticalCount} Critical
-              </div>
-            )}
-          </div>
-        </div>
-
-
-        {/* ── KPI Strip ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Alerts", value: summary?.total ?? 0, sub: "open commitments", color: "text-white", glow: "hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]" },
-            { label: "Critical", value: summary?.critical ?? 0, sub: "require immediate action", color: "text-red-400", glow: "hover:shadow-[0_0_30px_rgba(239,68,68,0.2)] hover:border-red-500/30" },
-            { label: "At Risk Entities", value: atRiskCount, sub: "relationships degrading", color: "text-orange-400", glow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.2)] hover:border-orange-500/30" },
-            { label: "Total Entities", value: entities.length, sub: "tracked relationships", color: "text-electric-400", glow: "hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-electric-500/30" },
-          ].map((kpi, i) => (
-            <div key={i} className={`stat-card p-5 animate-fade-in ${kpi.glow}`} style={{ animationDelay: `${i * 80}ms` }}>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">{kpi.label}</p>
-              <p className={`text-4xl font-bold ${kpi.color} leading-none mb-1`}>{kpi.value}</p>
-              <p className="text-xs text-slate-500">{kpi.sub}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Active Alerts ── */}
-        <section className="mt-8">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <h2 className="text-base font-semibold text-white tracking-tight">Active Alerts</h2>
-              <span className="text-[10px] font-semibold text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                {alerts.length} open
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-mono">
-              Last scan: {lastRefresh.toLocaleTimeString()}
-            </p>
-          </div>
-
-          {alerts.length === 0 ? (
-            <div className="glass-panel p-12 text-center space-y-2">
-              <div className="text-2xl mb-3 text-emerald-400">✓</div>
-              <p className="text-white font-medium">All relationships healthy</p>
-              <p className="text-sm text-slate-400">No open promises past their due date</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {alerts.map((alert, i) => {
-                const cfg = severityConfig[alert.severity] || severityConfig.low;
-                const entropyPct = Math.min((alert.entropy_score / 1.5) * 100, 100);
-                return (
-                  <Link key={i} href={`/customer/${alert.entity_id}`}>
-                    <div
-                      className="group glass-panel glass-panel-hover p-5 flex items-center gap-6 cursor-pointer animate-slide-up"
-                      style={{ animationDelay: `${i * 50}ms`, animationFillMode: "backwards" }}
-                    >
-                      {/* Severity dot */}
-                      <div className="hidden md:flex flex-col items-center gap-1.5 w-14 shrink-0">
-                        <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot} shadow-[0_0_8px_currentColor] ${alert.severity === 'critical' ? 'animate-[glowCritical_1.5s_ease-in-out_infinite_alternate]' : ''}`} />
-                        <span className={`text-[9px] font-bold uppercase tracking-widest ${cfg.badge.split(' ')[1]}`}>{alert.severity}</span>
-                      </div>
-
-                      {/* Main content */}
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <span className="text-sm font-semibold text-white group-hover:text-electric-400 transition-colors">
-                            {alert.entity_id}
-                          </span>
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${cfg.badge}`}>
-                            {alert.severity}
-                          </span>
-                          <span className="text-[10px] font-medium text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded uppercase tracking-wider">
-                            {alert.promise_type?.replace(/_/g, " ")}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-300 leading-snug truncate">{alert.promise_description}</p>
-                        <p className="text-[11px] text-slate-500 font-mono">
-                          {alert.days_elapsed}d elapsed {alert.due_date ? `· due ${alert.due_date}` : ""}  · made by <span className="text-slate-400">{alert.made_by}</span>
-                        </p>
-                      </div>
-
-                      {/* Entropy meter */}
-                      <div className="hidden md:block w-44 shrink-0 space-y-1.5">
-                        <div className="flex justify-between items-center text-[10px]">
-                          <span className="text-slate-400 uppercase tracking-wider font-semibold">Entropy</span>
-                          <span className="font-mono text-white font-semibold">{alert.entropy_score.toFixed(2)}</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-white/5 border border-white/10 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-700 ${cfg.bar}`}
-                            style={{ width: `${entropyPct}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-[9px] text-slate-500">
-                          <span>0</span><span>1.5</span>
-                        </div>
-                      </div>
-
-                      {/* Arrow */}
-                      <svg className="w-4 h-4 text-slate-500 group-hover:text-electric-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* ── Entities Table ── */}
-        <section className="mt-8">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-semibold text-white tracking-tight">Relationship Registry</h2>
-            <span className="text-[11px] text-slate-500">{entities.length} entities tracked</span>
-          </div>
-
-          <div className="glass-panel overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02]">
-                  {["Entity", "Type", "State", "Events", "Open Promises", "Last Interaction"].map(h => (
-                    <th key={h} className="px-5 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {entities.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500 text-sm">
-                      No entities yet — import your first CSV to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  entities.map((e, i) => {
-                    const sc = stateConfig[e.state] || { label: e.state, cls: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
-                    return (
-                      <tr key={e.entity_id} className="table-row-hover border-b border-white/5 transition-colors animate-fade-in" style={{ animationDelay: `${i * 40}ms` }}>
-                        <td className="px-5 py-4">
-                          <Link href={`/customer/${e.entity_id}`} className="font-semibold text-white hover:text-electric-400 transition-colors">
-                            {e.entity_id}
-                          </Link>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider bg-white/5 border border-white/10 px-2 py-0.5 rounded">
-                            {e.entity_type}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border ${sc.cls}`}>
-                            {sc.label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-slate-300 font-mono text-xs">{e.event_count}</td>
-                        <td className="px-5 py-4">
-                          {e.open_promises > 0 ? (
-                            <span className="text-red-400 font-semibold font-mono text-xs">{e.open_promises}</span>
-                          ) : (
-                            <span className="text-emerald-400 font-mono text-xs">0</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-slate-400 font-mono text-xs">
-                          {new Date(e.last_interaction).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
     </div>
   );
 }

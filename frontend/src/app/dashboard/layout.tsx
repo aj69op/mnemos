@@ -33,22 +33,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </Link>
             <nav className="flex flex-col gap-1">
-              <Link href="/dashboard" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
+              <a href="/dashboard" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Home className="w-4 h-4" />
                 <span className="text-sm">Dashboard</span>
-              </Link>
-              <Link href="/dashboard/entities" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname.startsWith('/dashboard/entities') || pathname.startsWith('/dashboard/customer') ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
+              </a>
+              <a href="/dashboard/entities" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${(pathname?.startsWith('/dashboard/entities') || pathname?.startsWith('/dashboard/customer')) ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Users className="w-4 h-4" />
                 <span className="text-sm">Entities</span>
-              </Link>
-              <Link href="/dashboard/import" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard/import' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
+              </a>
+              <a href="/dashboard/import" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard/import' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Upload className="w-4 h-4" />
                 <span className="text-sm">Import</span>
-              </Link>
-              <button className="transition-all duration-300 rounded-md text-gray-500 flex px-3 py-2 items-center gap-3 hover:text-black">
+              </a>
+              <a href="/dashboard/graph" className={`transition-all duration-300 rounded-md flex px-3 py-2 items-center gap-3 ${pathname === '/dashboard/graph' ? 'shadow-[0_14px_30px_rgba(17,17,17,0.10)] bg-white text-[#111111] border-l-2 border-[#1E3A2F] font-semibold' : 'text-gray-500 hover:text-black'}`}>
                 <Network className="w-4 h-4" />
                 <span className="text-sm">Knowledge Graph</span>
-              </button>
+              </a>
               <button className="transition-all duration-300 rounded-md text-gray-500 flex px-3 py-2 items-center gap-3 hover:text-black">
                 <Zap className="w-4 h-4" />
                 <span className="text-sm">Memify</span>

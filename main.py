@@ -233,39 +233,44 @@ async def query_entity(req: QueryRequest):
             detail=f"No data found for entity '{req.entity_id}'"
         )
 
-    # ── Try Cognee Cloud semantic search first ──
+    # ── Try Cognee Cloud semantic search (scoped to entity dataset) ──
     if COGNEE_AVAILABLE:
         try:
             results = await _cognee_request("POST", "/search", json={
-                "query": req.query,
+                "query": f"{req.entity_id}: {req.query}",
                 "query_type": "INSIGHTS",
+                "dataset_name": req.entity_id,
             })
             if results:
                 answer_parts = []
                 for r in results:
-                    if isinstance(r, dict) and "text" in r:
-                        answer_parts.append(r["text"])
-                    elif isinstance(r, dict) and "search_result" in r:
-                        if isinstance(r["search_result"], list):
-                            answer_parts.extend(r["search_result"])
+                    if isinstance(r, dict) and "search_result" in r:
+                        sr = r["search_result"]
+                        if isinstance(sr, list):
+                            answer_parts.extend(str(item) for item in sr)
                         else:
-                            answer_parts.append(str(r["search_result"]))
+                            answer_parts.append(str(sr))
+                    elif isinstance(r, dict) and "text" in r:
+                        answer_parts.append(r["text"])
                     elif isinstance(r, str):
                         answer_parts.append(r)
                     else:
                         answer_parts.append(str(r))
 
-                return QueryResponse(
-                    entity_id=req.entity_id,
-                    query=req.query,
-                    answer="\n".join(answer_parts),
-                    events_searched=len(events),
-                    search_mode="cognee_cloud",
-                )
+                clean_answer = "\n".join(answer_parts)
+                # Only use Cognee answer if it's actually meaningful
+                if clean_answer.strip() and len(clean_answer.strip()) > 10:
+                    return QueryResponse(
+                        entity_id=req.entity_id,
+                        query=req.query,
+                        answer=clean_answer,
+                        events_searched=len(events),
+                        search_mode="cognee_cloud",
+                    )
         except Exception as e:
             print(f"[mnemos] Cognee search failed, falling back to Gemini: {e}")
 
-    # ── Gemini fallback with sliding window (#3 fix) ──
+    # ── Gemini/Groq fallback with sliding window ──
     answer = await asyncio.to_thread(
         _gemini_fallback_query, req.query, events, req.entity_id
     )

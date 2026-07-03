@@ -552,6 +552,66 @@ async def health():
     }
 
 
+# ─── DEBUG: Temporary Cognee connectivity test (remove after preflight) ───────
+
+@app.get("/debug/cognee-ping")
+async def debug_cognee_ping():
+    """
+    Temporary endpoint to test Cognee Cloud reachability from Railway's
+    Linux container. Tests TLS handshake, DNS resolution, and API auth.
+    Remove after preflight verification is complete.
+    """
+    import ssl
+    import platform
+
+    results = {
+        "platform": platform.platform(),
+        "python_ssl": ssl.OPENSSL_VERSION,
+        "cognee_api_base": COGNEE_API_BASE,
+        "cognee_key_present": bool(COGNEE_API_KEY),
+        "cognee_key_prefix": COGNEE_API_KEY[:8] + "..." if COGNEE_API_KEY else "N/A",
+    }
+
+    # Test 1: Raw TLS handshake
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{COGNEE_API_BASE}/api/v1/health")
+            results["tls_handshake"] = "OK"
+            results["health_status"] = resp.status_code
+            results["health_body"] = resp.text[:500]
+    except Exception as e:
+        results["tls_handshake"] = "FAILED"
+        results["tls_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+
+    # Test 2: Authenticated /add endpoint (POST with dummy data)
+    if results.get("tls_handshake") == "OK" and COGNEE_AVAILABLE:
+        try:
+            resp2 = await _cognee_request("POST", "/add", json={
+                "data": "preflight connectivity test",
+                "dataset_name": "preflight_test",
+            })
+            results["add_endpoint"] = "OK"
+            results["add_response"] = str(resp2)[:300]
+        except Exception as e:
+            results["add_endpoint"] = "FAILED"
+            results["add_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+
+    # Test 3: Search endpoint
+    if results.get("tls_handshake") == "OK" and COGNEE_AVAILABLE:
+        try:
+            resp3 = await _cognee_request("POST", "/search", json={
+                "query": "preflight test",
+                "query_type": "INSIGHTS",
+            })
+            results["search_endpoint"] = "OK"
+            results["search_response"] = str(resp3)[:300]
+        except Exception as e:
+            results["search_endpoint"] = "FAILED"
+            results["search_error"] = f"{type(e).__name__}: {str(e)[:300]}"
+
+    return results
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

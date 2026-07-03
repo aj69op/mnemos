@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import Link from "next/link";
-import { api, EntityMetrics } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function EntitiesPage() {
-  const [entities, setEntities] = useState<EntityMetrics[]>([]);
+  const [entities, setEntities] = useState<any[]>([]);
 
   useEffect(() => {
     // We would fetch real entities here

@@ -235,13 +235,18 @@ async def query_entity(req: QueryRequest):
 
     # ── Try Cognee Cloud semantic search (scoped to entity dataset) ──
     if COGNEE_AVAILABLE:
-        try:
-            results = await _cognee_request("POST", "/search", json={
-                "query": f"{req.entity_id}: {req.query}",
-                "query_type": "INSIGHTS",
-                "dataset_name": req.entity_id,
-            })
-            if results:
+        # Try multiple query types: CHUNKS searches raw text, GRAPH_COMPLETION
+        # uses the knowledge graph to generate an answer
+        for qtype in ["CHUNKS", "GRAPH_COMPLETION", "INSIGHTS"]:
+            try:
+                results = await _cognee_request("POST", "/search", json={
+                    "query": req.query,
+                    "query_type": qtype,
+                    "dataset_name": req.entity_id,
+                })
+                if not results:
+                    continue
+
                 answer_parts = []
                 for r in results:
                     if isinstance(r, dict) and "search_result" in r:
@@ -252,23 +257,46 @@ async def query_entity(req: QueryRequest):
                             answer_parts.append(str(sr))
                     elif isinstance(r, dict) and "text" in r:
                         answer_parts.append(r["text"])
+                    elif isinstance(r, dict) and "content" in r:
+                        answer_parts.append(r["content"])
+                    elif isinstance(r, dict) and "chunk_text" in r:
+                        answer_parts.append(r["chunk_text"])
                     elif isinstance(r, str):
                         answer_parts.append(r)
                     else:
                         answer_parts.append(str(r))
 
-                clean_answer = "\n".join(answer_parts)
-                # Only use Cognee answer if it's actually meaningful
-                if clean_answer.strip() and len(clean_answer.strip()) > 10:
+                clean_answer = "\n".join(answer_parts).strip()
+
+                # Filter out unhelpful responses: clarifying questions,
+                # "provide triples" requests, or too-short answers
+                unhelpful_markers = [
+                    "node1", "triples you", "do you need details",
+                    "could you please provide", "which contract or service",
+                    "please share", "can you provide", "what specific",
+                    "i can't determine", "i cannot determine",
+                    "without the knowledge-graph", "please provide the list",
+                ]
+                lower_answer = clean_answer.lower()
+                is_unhelpful = (
+                    len(clean_answer) < 30
+                    or any(marker in lower_answer for marker in unhelpful_markers)
+                )
+
+                if not is_unhelpful:
+                    print(f"[mnemos] Cognee {qtype} returned good result ({len(clean_answer)} chars)")
                     return QueryResponse(
                         entity_id=req.entity_id,
                         query=req.query,
                         answer=clean_answer,
                         events_searched=len(events),
-                        search_mode="cognee_cloud",
+                        search_mode=f"cognee_{qtype.lower()}",
                     )
-        except Exception as e:
-            print(f"[mnemos] Cognee search failed, falling back to Gemini: {e}")
+                print(f"[mnemos] Cognee {qtype} returned unhelpful result, trying next type...")
+            except Exception as e:
+                print(f"[mnemos] Cognee {qtype} search failed: {e}")
+
+        print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, falling back to Gemini")
 
     # ── Gemini/Groq fallback with sliding window ──
     answer = await asyncio.to_thread(

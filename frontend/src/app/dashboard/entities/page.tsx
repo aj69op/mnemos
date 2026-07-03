@@ -145,10 +145,11 @@ export default function EntitiesPage() {
                       </div>
                     </td>
                     <td className="p-4 rounded-r-xl">
-                      <Link href={`/dashboard/customer/${e.entity_id}`}>
-                        <button className="shadow-[0_12px_24px_rgba(17,17,17,0.12)] transition-all duration-300 font-medium rounded-md bg-white text-[#111111] text-xs border-[#1E3A2F] border px-3 py-1.5 hover:bg-neutral-50 hover:-translate-y-0.5">
-                          View Timeline
-                        </button>
+                      <Link 
+                        href={`/dashboard/customer/${e.entity_id}`}
+                        className="inline-block shadow-[0_12px_24px_rgba(17,17,17,0.12)] transition-all duration-300 font-medium rounded-md bg-white text-[#111111] text-xs border-[#1E3A2F] border px-3 py-1.5 hover:bg-neutral-50 hover:-translate-y-0.5"
+                      >
+                        View Timeline
                       </Link>
                     </td>
                   </tr>

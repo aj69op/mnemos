@@ -53,10 +53,11 @@ export default function LandingPage() {
                 promise.
               </div>
               <div className="flex mt-8 justify-center items-center gap-4">
-                <Link href="/dashboard">
-                  <Button className="shadow-[0_18px_50px_rgba(255,255,255,0.18),0_24px_80px_rgba(0,0,0,0.55)] transition-transform duration-300 font-semibold rounded-full bg-white text-black text-base px-7 h-12 hover:bg-neutral-200">
-                    Get Started
-                  </Button>
+                <Link 
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center whitespace-nowrap shadow-[0_18px_50px_rgba(255,255,255,0.18),0_24px_80px_rgba(0,0,0,0.55)] transition-transform duration-300 font-semibold rounded-full bg-white text-black text-base px-7 h-12 hover:bg-neutral-200"
+                >
+                  Get Started
                 </Link>
                 <Button
                   variant="outline"

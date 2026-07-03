@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
-  const [atRisk, setAtRisk] = useState<string[]>([]);
+  const [atRisk, setAtRisk] = useState<any[]>([]);
 
   useEffect(() => {
     api.getAlerts().then(res => {
@@ -81,9 +81,9 @@ export default function DashboardPage() {
       </section>
       <section className="overflow-x-auto flex mt-8 pb-1 items-center gap-3">
         {atRisk.length > 0 ? (
-          atRisk.map(id => (
-            <div key={id} className="shrink-0 shadow-[0_10px_24px_rgba(17,17,17,0.08)] font-medium rounded-full bg-white text-[#111111] text-xs border-amber-600 border px-3 py-1.5">
-              {id}
+          atRisk.map((entity: any) => (
+            <div key={entity.entity_id} className="shrink-0 shadow-[0_10px_24px_rgba(17,17,17,0.08)] font-medium rounded-full bg-white text-[#111111] text-xs border-amber-600 border px-3 py-1.5">
+              {entity.entity_id}
             </div>
           ))
         ) : (

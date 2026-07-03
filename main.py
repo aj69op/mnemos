@@ -245,6 +245,11 @@ async def query_entity(req: QueryRequest):
                 for r in results:
                     if isinstance(r, dict) and "text" in r:
                         answer_parts.append(r["text"])
+                    elif isinstance(r, dict) and "search_result" in r:
+                        if isinstance(r["search_result"], list):
+                            answer_parts.extend(r["search_result"])
+                        else:
+                            answer_parts.append(str(r["search_result"]))
                     elif isinstance(r, str):
                         answer_parts.append(r)
                     else:

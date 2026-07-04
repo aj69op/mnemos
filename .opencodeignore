@@ -1,0 +1,24 @@
+# OpenCode ignore patterns
+# Prevents OpenCode tool chain from scanning/reading these files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.pdf
+*.zip
+*.tar
+*.gz
+node_modules/
+.next/
+__pycache__/
+.venv/
+*.log
+*.pyc

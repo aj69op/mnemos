@@ -14,7 +14,7 @@ import os
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional
@@ -101,7 +101,7 @@ class ExtractedERPEvent:
     attribute_type: Optional[str] = None
     attribute_value: Optional[str] = None
     attribute_source: Optional[str] = None
-    extracted_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    extracted_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ─── 6. GEMINI EXTRACTION FUNCTION ────────────────────────────────────────────
@@ -155,11 +155,11 @@ def classify_erp_event(
     Returns:
         ExtractedERPEvent with all fields populated
     """
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     prompt = EXTRACTION_PROMPT.format(text=text, today=today)
 
     # Fast fallback for rate limits to prevent CSV import timeouts
-    max_retries = 0
+    max_retries = 3
     for attempt in range(max_retries + 1):
         try:
             raw = call_ai_with_fallback(prompt)
@@ -265,6 +265,8 @@ def compute_relationship_state(events: list[ExtractedERPEvent]) -> RelationshipS
     )
 
     # State machine — order matters, most severe checked first
+    if any("churn_confirmed" in e.relationship_signals for e in recent):
+        return RelationshipState.CHURNED
     if escalations >= 2 or churn_signals >= 2:
         return RelationshipState.AT_RISK
     if negative_count >= 3 or open_promises >= 3:

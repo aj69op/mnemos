@@ -1,63 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, Send, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
-import { api, IngestResponse } from "@/lib/api";
+import { Zap, AlertTriangle, ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { api, MemifyResponse } from "@/lib/api";
 
 export default function MemifyPage() {
-  const [entityId, setEntityId] = useState("");
-  const [entityType, setEntityType] = useState("Customer");
-  const [date, setDate] = useState("");
-  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<IngestResponse | null>(null);
+  const [result, setResult] = useState<MemifyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [demoBanner, setDemoBanner] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim() || !entityId.trim()) return;
-    
+  const handleRunMemify = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setDemoBanner(false);
 
     try {
-      const res = await api.ingestEvent({
-        text,
-        entity_id: entityId,
-        entity_type: entityType,
-        date: date || undefined
-      });
+      const res = await api.runMemify();
       setResult(res);
     } catch (err: any) {
-      console.error(err);
-      setError("Failed to memify interaction. Please try again.");
+      if (err?.status === 403) {
+        setDemoBanner(true);
+      } else {
+        console.error(err);
+        setError("Failed to run Memify pass. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setText("");
     setResult(null);
     setError(null);
-  };
-
-  const getSentimentIcon = (sentiment: string) => {
-    if (sentiment === "positive") return "😊";
-    if (sentiment === "negative") return "😠";
-    return "😐";
-  };
-
-  const getStateColor = (state: string) => {
-    switch (state) {
-      case "TRUSTED": return "bg-green-50 text-green-800 border-green-200";
-      case "ENGAGED": return "bg-cyan-50 text-teal-700 border-emerald-200";
-      case "PROSPECT": return "bg-slate-50 text-slate-700 border-slate-300";
-      case "AT_RISK": return "bg-amber-50 text-amber-700 border-amber-200";
-      case "CHURNED": return "bg-red-50 text-red-700 border-red-200";
-      default: return "bg-gray-50 text-gray-700 border-gray-200";
-    }
+    setDemoBanner(false);
   };
 
   return (
@@ -68,74 +45,76 @@ export default function MemifyPage() {
           Memify
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Transform raw interactions into structured relationship memory.
+          Entropy-weighted pruning that compacts low-signal graph nodes to keep memory sharp.
         </p>
       </div>
 
       <div className="px-8 py-8 space-y-8 max-w-4xl">
+        {/* Demo Mode Banner */}
+        {demoBanner && (
+          <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <span className="text-amber-800 text-sm font-medium">
+                Demo mode is active — write operations are disabled on the public instance.
+              </span>
+            </div>
+            <button
+              onClick={() => setDemoBanner(false)}
+              className="text-amber-600 hover:text-amber-800 text-xs font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 text-sm font-medium animate-fade-in">
+            <AlertTriangle className="w-5 h-5" />
+            {error}
+          </div>
+        )}
+
         {!result ? (
-          <form onSubmit={handleSubmit} className="shadow-[0_16px_38px_rgba(17,17,17,0.06)] rounded-2xl bg-white border border-gray-200 p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="uppercase text-[11px] tracking-widest text-gray-400 font-bold block">Entity ID *</label>
-                <input 
-                  type="text" 
-                  value={entityId}
-                  onChange={e => setEntityId(e.target.value)}
-                  placeholder="e.g. CUST-0123"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] outline-none transition-all"
-                  required
-                />
+          /* Run Memify Card */
+          <div className="shadow-[0_16px_38px_rgba(17,17,17,0.06)] rounded-2xl bg-white border border-gray-200 p-8 space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#E8F3EF] flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-[#1E3A2F]" />
               </div>
-              <div className="space-y-2">
-                <label className="uppercase text-[11px] tracking-widest text-gray-400 font-bold block">Entity Type</label>
-                <select 
-                  value={entityType}
-                  onChange={e => setEntityType(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] outline-none transition-all"
-                >
-                  <option value="Customer">Customer</option>
-                  <option value="Vendor">Vendor</option>
-                  <option value="Partner">Partner</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="uppercase text-[11px] tracking-widest text-gray-400 font-bold block">Date (Optional)</label>
-                <input 
-                  type="date" 
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] outline-none transition-all"
-                />
+              <div>
+                <h2 className="font-bold text-lg text-[#111111]">Memory Optimization Pass</h2>
+                <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                  Memify scans all stored events and identifies <strong>low-signal noise</strong> — 
+                  interactions with neutral sentiment, neutral type, and zero promises. These are 
+                  soft-deleted (pruned) to keep the knowledge graph focused on what matters.
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="uppercase text-[11px] tracking-widest text-gray-400 font-bold block flex justify-between">
-                <span>Interaction Text *</span>
-                <span className="text-gray-300 font-normal normal-case">Paste conversation, email, or meeting notes</span>
-              </label>
-              <textarea 
-                value={text}
-                onChange={e => setText(e.target.value)}
-                placeholder="Paste the raw interaction here..."
-                rows={6}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] outline-none transition-all resize-y"
-                required
-              />
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">What gets pruned?</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="text-sm font-semibold text-[#111111]">Neutral Type</div>
+                  <div className="text-xs text-gray-500 mt-1">Events classified as &quot;neutral&quot; with no action value</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="text-sm font-semibold text-[#111111]">Neutral Sentiment</div>
+                  <div className="text-xs text-gray-500 mt-1">No emotional signal — neither positive nor negative</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="text-sm font-semibold text-[#111111]">Zero Promises</div>
+                  <div className="text-xs text-gray-500 mt-1">No commitments extracted from the interaction</div>
+                </div>
+              </div>
             </div>
 
-            {error && (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 text-sm font-medium animate-fade-in">
-                <AlertTriangle className="w-5 h-5" />
-                {error}
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2 border-t border-gray-100">
-              <button 
-                type="submit" 
-                disabled={loading || !text.trim() || !entityId.trim()}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={handleRunMemify}
+                disabled={loading}
                 className="bg-[#1E3A2F] hover:bg-[#152a22] text-white px-8 py-3 rounded-xl text-sm font-semibold shadow-[0_8px_20px_rgba(30,58,47,0.3)] transition-all duration-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2"
               >
                 {loading ? (
@@ -144,119 +123,110 @@ export default function MemifyPage() {
                       <span className="inline-flex animate-ping opacity-70 rounded-full bg-white absolute w-full h-full" />
                       <span className="relative inline-flex w-3 h-3 rounded-full bg-white" />
                     </span>
-                    Memifying...
+                    Running Memify Pass...
                   </>
                 ) : (
                   <>
                     <Zap className="w-4 h-4" />
-                    Memify This Interaction
+                    Run Memify
                   </>
                 )}
               </button>
             </div>
-          </form>
+          </div>
         ) : (
+          /* Results */
           <div className="animate-slide-up space-y-6">
+            {/* Success Banner */}
             <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
               <CheckCircle2 className="w-6 h-6 text-emerald-600" />
               <div>
-                <h3 className="text-emerald-800 font-bold">Successfully Memified</h3>
-                <p className="text-emerald-600 text-sm">Interaction processed and stored in the knowledge graph.</p>
+                <h3 className="text-emerald-800 font-bold">Memify Pass Complete</h3>
+                <p className="text-emerald-600 text-sm">
+                  {result.pruned_count > 0
+                    ? `Successfully pruned ${result.pruned_count} low-signal event${result.pruned_count !== 1 ? "s" : ""} from the knowledge graph.`
+                    : "No low-signal events found — your memory is already clean!"}
+                </p>
               </div>
             </div>
 
+            {/* Before/After Comparison */}
             <div className="shadow-[0_16px_38px_rgba(17,17,17,0.06)] rounded-2xl bg-white border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h3 className="font-bold text-[#111111]">Analysis Results</h3>
-                <span className="text-xs font-mono text-gray-500 bg-gray-200 px-2 py-1 rounded">{result.entity_id}</span>
+              <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+                <h3 className="font-bold text-[#111111]">Pruning Results</h3>
               </div>
-              
               <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
-                    <div className="uppercase text-[10px] tracking-widest text-gray-400 font-bold mb-2">Event Type</div>
-                    <div className="font-bold text-[#111111] bg-gray-100 w-fit px-2.5 py-1 rounded-md text-sm">{result.event_type}</div>
+                {/* Large Before → After */}
+                <div className="flex items-center justify-center gap-6 py-6">
+                  <div className="text-center">
+                    <div className="uppercase text-[10px] tracking-widest text-gray-400 font-bold mb-2">Before</div>
+                    <div className="font-bold text-4xl text-gray-400">{result.nodes_before}</div>
+                    <div className="text-xs text-gray-400 mt-1">events</div>
                   </div>
-                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
-                    <div className="uppercase text-[10px] tracking-widest text-gray-400 font-bold mb-2">Sentiment</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getSentimentIcon(result.sentiment)}</span>
-                      <div className="flex-1">
-                        <div className="capitalize font-bold text-sm text-[#111111]">{result.sentiment}</div>
-                        <div className="w-full bg-gray-100 h-1 rounded-full mt-1 overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${result.sentiment_intensity * 100}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
-                    <div className="uppercase text-[10px] tracking-widest text-gray-400 font-bold mb-2">Promises Found</div>
-                    <div className="font-bold text-3xl text-[#1E3A2F]">{result.promises_found}</div>
-                  </div>
-                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
-                    <div className="uppercase text-[10px] tracking-widest text-gray-400 font-bold mb-2">State Result</div>
-                    <div className={`font-bold text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border w-fit ${getStateColor(result.relationship_state)}`}>
-                      {result.relationship_state}
-                    </div>
+                  <ArrowRight className="w-8 h-8 text-[#1E3A2F]" />
+                  <div className="text-center">
+                    <div className="uppercase text-[10px] tracking-widest text-[#1E3A2F] font-bold mb-2">After</div>
+                    <div className="font-bold text-4xl text-[#1E3A2F]">{result.nodes_after}</div>
+                    <div className="text-xs text-gray-500 mt-1">events</div>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="uppercase text-[11px] tracking-widest text-gray-400 font-bold mb-3 flex items-center gap-2">
-                      <Sparkles className="w-3 h-3" /> ERP Tags
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {result.erp_tags.length > 0 ? result.erp_tags.map(tag => (
-                        <span key={tag} className="bg-gray-100 border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-1 rounded-full">{tag}</span>
-                      )) : <span className="text-sm text-gray-400">None detected</span>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="uppercase text-[11px] tracking-widest text-gray-400 font-bold mb-3 flex items-center gap-2">
-                      <Network className="w-3 h-3" /> Relationship Signals
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {result.relationship_signals.length > 0 ? result.relationship_signals.map(signal => (
-                        <span key={signal} className="bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">{signal}</span>
-                      )) : <span className="text-sm text-gray-400">None detected</span>}
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-                     <div className="text-xs text-gray-500 flex items-center gap-2">
-                       Cognee Network Status: 
-                       <span className={`font-bold ${result.cognee_status.includes('success') ? 'text-emerald-600' : 'text-amber-600'}`}>
-                         {result.cognee_status}
-                       </span>
-                     </div>
-                  </div>
+                {/* Pruned Count */}
+                <div className="text-center py-4 border-t border-gray-100">
+                  <span className="inline-flex items-center gap-2 bg-[#E8F3EF] text-[#1E3A2F] font-bold text-sm px-4 py-2 rounded-full">
+                    <Zap className="w-4 h-4" />
+                    {result.pruned_count} low-signal event{result.pruned_count !== 1 ? "s" : ""} pruned
+                  </span>
                 </div>
+
+                {/* Affected Entities */}
+                {result.pruned_entities.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <h4 className="uppercase text-[11px] tracking-widest text-gray-400 font-bold mb-3">
+                      Affected Entities
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {result.pruned_entities.map((pe) => (
+                        <span
+                          key={pe.entity_id}
+                          className="bg-gray-100 border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                        >
+                          {pe.entity_id}
+                          <span className="text-[#1E3A2F] bg-[#E8F3EF] px-1.5 py-0.5 rounded text-[10px] font-bold">
+                            -{pe.pruned_events}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Run Again */}
             <div className="flex justify-center mt-6">
-              <button 
+              <button
                 onClick={handleReset}
                 className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 flex items-center gap-2"
               >
-                Memify Another Interaction
+                Run Another Pass
               </button>
             </div>
           </div>
         )}
 
+        {/* Info Box */}
         <div className="rounded-2xl bg-gray-50 border border-gray-200 p-6 flex items-start gap-4 text-sm text-gray-600">
           <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 text-[#1E3A2F]">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="space-y-2">
-            <h4 className="font-bold text-[#111111]">Memify Tips</h4>
+            <h4 className="font-bold text-[#111111]">How Memify Works</h4>
             <ul className="list-disc pl-4 space-y-1">
-              <li>Include specific dates, names, and commitments for best results.</li>
-              <li>The AI engine extracts promises, sentiment, and relationship signals automatically.</li>
-              <li>Each interaction updates the entity's relationship state in real-time.</li>
+              <li>Scans all events for low-signal noise (neutral type + neutral sentiment + zero promises).</li>
+              <li>Soft-deletes matching events — they&apos;re excluded from timelines, alerts, and entity counts.</li>
+              <li>Pruning is reversible at the database level (events are marked, not destroyed).</li>
+              <li>Run multiple passes as new data is ingested to keep memory compact.</li>
             </ul>
           </div>
         </div>

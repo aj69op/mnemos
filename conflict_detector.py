@@ -1,5 +1,5 @@
 # conflict_detector.py
-from datetime import datetime
+from datetime import datetime, timezone
 import storage
 
 WATCHED_ATTRS = ["delivery_date", "payment_amount", "payment_status", "commitment_date"]
@@ -24,7 +24,7 @@ def check_for_conflict(entity_id: str, attribute_type: str, new_value: str,
             "source_b": new_source,
             "value_b": new_value,
             "event_id_b": new_event_id,
-            "detected_at": datetime.utcnow().isoformat(),
+            "detected_at": datetime.now(timezone.utc).isoformat(),
         }
         storage.insert_conflict(conflict)
         return conflict

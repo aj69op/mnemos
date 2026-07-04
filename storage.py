@@ -83,25 +83,26 @@ def get_events(entity_id: str) -> list[ExtractedERPEvent]:
     """Load all events for a specific entity, ordered by occurred_at."""
     with db_session() as conn:
         rows = conn.execute(
-            "SELECT payload FROM events WHERE entity_id = ? ORDER BY occurred_at ASC",
+            "SELECT payload FROM events WHERE entity_id = ? AND pruned = 0 ORDER BY occurred_at ASC",
             (entity_id,),
         ).fetchall()
     return [_deserialize_event(r["payload"]) for r in rows]
 
 
-def get_all_events() -> dict[str, list[ExtractedERPEvent]]:
+def get_all_events(include_pruned: bool = False) -> dict[str, list[ExtractedERPEvent]]:
     """Load all events across all entities. Returns {entity_id: [events]}."""
+    query = "SELECT entity_id, payload FROM events"
+    if not include_pruned:
+        query += " WHERE pruned = 0"
+    query += " ORDER BY entity_id, occurred_at ASC"
+
     with db_session() as conn:
-        rows = conn.execute(
-            "SELECT entity_id, payload FROM events ORDER BY entity_id, occurred_at ASC"
-        ).fetchall()
+        rows = conn.execute(query).fetchall()
 
     result: dict[str, list[ExtractedERPEvent]] = {}
     for row in rows:
         eid = row["entity_id"]
-        if eid not in result:
-            result[eid] = []
-        result[eid].append(_deserialize_event(row["payload"]))
+        result.setdefault(eid, []).append(_deserialize_event(row["payload"]))
     return result
 
 
@@ -159,6 +160,10 @@ def list_entities() -> list[dict]:
                 1 for e in events for p in e.promises if not p.resolved
             ),
         })
+
+    # Filter out forgotten entities
+    forgotten = get_forgotten_entity_ids()
+    entities = [e for e in entities if e["entity_id"] not in forgotten]
 
     return entities
 
@@ -227,11 +232,11 @@ def increment_cognee_retry_attempt(retry_id: int) -> None:
 
 
 def get_latest_attribute_value(entity_id: str, attribute_type: str, exclude_event_id: int = None):
-    """Get the most recent value for an attribute on an entity."""
+    """Get the most recent value for an attribute on an entity using JSON extraction."""
     with db_session() as conn:
         query = """SELECT payload, id FROM events 
-                   WHERE entity_id = ? AND payload LIKE ?"""
-        params = [entity_id, f'%"{attribute_type}"%']
+                   WHERE entity_id = ? AND json_extract(payload, '$.attribute_type') = ?"""
+        params = [entity_id, attribute_type]
         
         if exclude_event_id is not None:
             query += " AND id != ?"
@@ -290,3 +295,64 @@ def resolve_conflict(conflict_id: int):
             "UPDATE conflicts SET resolved = 1 WHERE id = ?",
             (conflict_id,)
         )
+
+
+# ─── Memify: entropy-weighted pruning ───────────────────────────────────────────
+
+def find_low_signal_event_ids() -> list[tuple[int, str]]:
+    """
+    Returns (row_id, entity_id) for events that are low-signal candidates:
+    neutral type, neutral sentiment, no promises, not already pruned.
+    """
+    with db_session() as conn:
+        rows = conn.execute(
+            "SELECT id, entity_id, payload FROM events WHERE pruned = 0"
+        ).fetchall()
+
+    candidates = []
+    for row in rows:
+        event = _deserialize_event(row["payload"])
+        if (
+            event.event_type == "neutral"
+            and event.sentiment == "neutral"
+            and len(event.promises) == 0
+        ):
+            candidates.append((row["id"], row["entity_id"]))
+    return candidates
+
+
+def prune_events(event_ids: list[int]) -> None:
+    """Mark the given event rows as pruned (soft delete)."""
+    if not event_ids:
+        return
+    with db_session() as conn:
+        placeholders = ",".join("?" for _ in event_ids)
+        conn.execute(
+            f"UPDATE events SET pruned = 1 WHERE id IN ({placeholders})",
+            event_ids,
+        )
+
+
+def count_total_events(include_pruned: bool = True) -> int:
+    query = "SELECT COUNT(*) as c FROM events"
+    if not include_pruned:
+        query += " WHERE pruned = 0"
+    with db_session() as conn:
+        return conn.execute(query).fetchone()["c"]
+
+
+# ─── Forget: soft-delete entities ─────────────────────────────────────────────
+
+def forget_entity(entity_id: str) -> None:
+    """Soft-delete an entity: excluded from active lists, history kept."""
+    with db_session() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO forgotten_entities (entity_id) VALUES (?)",
+            (entity_id,),
+        )
+
+
+def get_forgotten_entity_ids() -> set[str]:
+    with db_session() as conn:
+        rows = conn.execute("SELECT entity_id FROM forgotten_entities").fetchall()
+    return {r["entity_id"] for r in rows}

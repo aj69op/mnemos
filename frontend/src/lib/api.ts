@@ -94,6 +94,13 @@ export interface EntropyEntry {
   entropy_score: number;
 }
 
+export interface MemifyResponse {
+  nodes_before: number;
+  nodes_after: number;
+  pruned_count: number;
+  pruned_entities: { entity_id: string; pruned_events: number }[];
+}
+
 export const api = {
   getAlerts: async () => {
     const res = await fetch(`${API_BASE}/alerts`);
@@ -126,6 +133,10 @@ export const api = {
       method: "POST",
       body: formData
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
     return res.json() as Promise<{ total_rows: number, imported: number, errors: number, results: any[] }>;
   },
   ingestEvent: async (data: IngestRequest) => {
@@ -151,5 +162,25 @@ export const api = {
   getLiveEntropy: async () => {
     const res = await fetch(`${API_BASE}/entropy/live`);
     return res.json() as Promise<{ entities: EntropyEntry[] }>;
+  },
+  async runMemify(): Promise<MemifyResponse> {
+    const res = await fetch(`${API_BASE}/memify`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
+    return res.json();
+  },
+  async forgetEntity(entityId: string): Promise<{ entity_id: string; forgotten: boolean }> {
+    const res = await fetch(`${API_BASE}/forget`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entity_id: entityId }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
+    return res.json();
   },
 };

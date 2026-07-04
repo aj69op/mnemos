@@ -344,6 +344,43 @@ SEED_EVENTS += [
 ]
 
 
+# ── 7. Noise Corp — High noise, perfect for Memify ────────────────────────────
+SEED_EVENTS += [
+    make_event("noise_corp", "Customer",
+        "Left voicemail.",
+        "neutral", "neutral", 0.0, days_ago(10),
+        erp_tags=["voicemail"]),
+    make_event("noise_corp", "Customer",
+        "Follow up email sent. Automated reply received.",
+        "neutral", "neutral", 0.0, days_ago(9),
+        erp_tags=["email"]),
+    make_event("noise_corp", "Customer",
+        "Saw them post on LinkedIn, liked the post.",
+        "neutral", "neutral", 0.0, days_ago(8),
+        erp_tags=["social"]),
+    make_event("noise_corp", "Customer",
+        "Sent regular newsletter. Opened.",
+        "neutral", "neutral", 0.0, days_ago(7),
+        erp_tags=["marketing"]),
+    make_event("noise_corp", "Customer",
+        "Just a generic touchpoint. No response.",
+        "neutral", "neutral", 0.0, days_ago(6),
+        erp_tags=["touchpoint"]),
+]
+
+# ── 8. Abandoned Ltd — CHURNED, perfect for Forget ──────────────────────────
+SEED_EVENTS += [
+    make_event("abandoned_ltd", "Customer",
+        "Initial contact made.",
+        "positive", "positive", 0.5, days_ago(100),
+        erp_tags=["lead"]),
+    make_event("abandoned_ltd", "Customer",
+        "They decided to go with a competitor due to pricing.",
+        "negative", "negative", -0.8, days_ago(90),
+        erp_tags=["churned"], relationship_signals=["lost_deal", "churn_confirmed"]),
+]
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -392,7 +429,7 @@ def main():
     print(f"  Entities        : {entities}")
 
     # Seed conflict data for demo
-    from datetime import datetime
+    from datetime import timezone
     import logging
     try:
         with db_session() as conn:
@@ -402,7 +439,7 @@ def main():
                     source_b, value_b, event_id_b, detected_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 ("rajesh_textiles", "delivery_date", "WhatsApp", "Tuesday July 7", 1,
-                 "Invoice (Tally)", "Friday July 10", 2, datetime.utcnow().isoformat())
+                 "Invoice (Tally)", "Friday July 10", 2, datetime.now(timezone.utc).isoformat())
             )
             conn.execute(
                 """INSERT INTO conflicts 
@@ -410,7 +447,7 @@ def main():
                     source_b, value_b, event_id_b, detected_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 ("ananya_foods_pvt", "payment_amount", "Purchase Order", "450000 INR", 5,
-                 "Invoice", "525000 INR", 8, datetime.utcnow().isoformat())
+                 "Invoice", "525000 INR", 8, datetime.now(timezone.utc).isoformat())
             )
         print("Seeded 2 conflict records")
     except Exception as e:

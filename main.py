@@ -185,7 +185,6 @@ async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
 
     # 2.5 Check for conflicts
     if event.attribute_type and event.attribute_value:
-        from conflict_detector import check_for_conflict
         check_for_conflict(
             req.entity_id, 
             event.attribute_type, 
@@ -204,8 +203,16 @@ async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
             })
             await _cognee_request("POST", "/cognify")
             cognee_status = "indexed"
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 409:
+                # Dataset already exists — data was still added, not an error
+                cognee_status = "indexed"
+                print(f"[mnemos] Cognee dataset already exists for {req.entity_id}, data added.")
+            else:
+                storage.queue_cognee_retry(req.entity_id, req.text)
+                cognee_status = f"queued_retry: {str(e)[:80]}"
+                print(f"[mnemos] Cognee upload failed for {req.entity_id}, queued retry: {e}")
         except Exception as e:
-            # #4 FIX: queue for retry instead of silently losing the upload
             storage.queue_cognee_retry(req.entity_id, req.text)
             cognee_status = f"queued_retry: {str(e)[:80]}"
             print(f"[mnemos] Cognee upload failed for {req.entity_id}, queued retry: {e}")
@@ -598,8 +605,13 @@ async def import_csv(file: UploadFile = File(...), _=Depends(require_write_acces
                         "dataset_name": entity_id,
                     })
                     cognee_batch_ids.add(entity_id)
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 409:
+                        cognee_batch_ids.add(entity_id)
+                    else:
+                        storage.queue_cognee_retry(entity_id, text_val)
+                        print(f"[mnemos] Cognee add failed row {row_num}, queued retry: {e}")
                 except Exception as e:
-                    # #4 FIX: queue retry instead of silent drop
                     storage.queue_cognee_retry(entity_id, text_val)
                     print(f"[mnemos] Cognee add failed row {row_num}, queued retry: {e}")
 
@@ -631,6 +643,50 @@ async def import_csv(file: UploadFile = File(...), _=Depends(require_write_acces
         "errors":   sum(1 for r in results if r.get("status") == "error"),
         "results":  results,
     }
+
+
+# ─── Route: POST /memify ──────────────────────────────────────────────────────
+
+@app.post("/memify")
+async def run_memify(_=Depends(require_write_access)):
+    """
+    Entropy-weighted pruning pass: soft-deletes low-signal events
+    (neutral type, neutral sentiment, no promises) to keep working
+    memory sharp. Reversible at the DB level (pruned=1, not deleted).
+    """
+    nodes_before = storage.count_total_events(include_pruned=False)
+
+    candidates = storage.find_low_signal_event_ids()
+    ids_to_prune = [c[0] for c in candidates]
+    storage.prune_events(ids_to_prune)
+
+    nodes_after = storage.count_total_events(include_pruned=False)
+
+    per_entity: dict[str, int] = {}
+    for _id, entity_id in candidates:
+        per_entity[entity_id] = per_entity.get(entity_id, 0) + 1
+
+    return {
+        "nodes_before": nodes_before,
+        "nodes_after": nodes_after,
+        "pruned_count": len(ids_to_prune),
+        "pruned_entities": [
+            {"entity_id": eid, "pruned_events": count}
+            for eid, count in per_entity.items()
+        ],
+    }
+
+
+# ─── Route: POST /forget ─────────────────────────────────────────────────────
+
+class ForgetRequest(BaseModel):
+    entity_id: str
+
+@app.post("/forget")
+async def forget_entity(req: ForgetRequest, _=Depends(require_write_access)):
+    """Soft-delete an entity from active views. History is preserved."""
+    storage.forget_entity(req.entity_id)
+    return {"entity_id": req.entity_id, "forgotten": True}
 
 
 # ─── Health Check ─────────────────────────────────────────────────────────────

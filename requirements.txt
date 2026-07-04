@@ -6,3 +6,4 @@ apscheduler
 python-multipart
 groq
 python-dotenv
+pydantic

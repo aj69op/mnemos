@@ -102,6 +102,13 @@ CREATE TABLE IF NOT EXISTS conflicts (
     resolved INTEGER DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_conflicts_entity ON conflicts(entity_id, resolved);
+
+-- Soft-deleted / forgotten entities — excluded from active views,
+-- history preserved in the events table.
+CREATE TABLE IF NOT EXISTS forgotten_entities (
+    entity_id       TEXT PRIMARY KEY,
+    forgotten_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
 """
 
 
@@ -165,6 +172,12 @@ def init_db() -> None:
     conn = get_connection()
     try:
         conn.executescript(SCHEMA)
+
+        # --- migration: add 'pruned' column to events if missing ---
+        cols = [row[1] for row in conn.execute("PRAGMA table_info(events)").fetchall()]
+        if "pruned" not in cols:
+            conn.execute("ALTER TABLE events ADD COLUMN pruned INTEGER NOT NULL DEFAULT 0")
+            conn.commit()
     finally:
         conn.close()
     print(f"[db] Initialized at {DB_PATH}")

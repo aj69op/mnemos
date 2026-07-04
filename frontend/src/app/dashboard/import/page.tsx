@@ -5,8 +5,9 @@ import { Sparkles, Calendar, ChevronDown, HelpCircle, Check, MessageSquare, Uplo
 import { api } from "@/lib/api";
 import Papa from "papaparse";
 
-export default function IngestPage() {
+export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<"paste" | "csv">("paste");
+  const [demoBanner, setDemoBanner] = useState(false);
 
   // Paste Note State
   const [text, setText] = useState("");
@@ -62,9 +63,13 @@ export default function IngestPage() {
     try {
       const res = await api.importCsv(file);
       setCsvResults(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Upload failed.");
+      if (err?.status === 403) {
+        setDemoBanner(true);
+      } else {
+        alert("Upload failed. Check console for details.");
+      }
     } finally {
       setUploading(false);
       setFile(null);
@@ -99,8 +104,25 @@ export default function IngestPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm flex-1 flex overflow-hidden p-8 gap-12">
+      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm flex-1 flex overflow-hidden p-8 gap-12 flex-col lg:flex-row relative">
         
+        {demoBanner && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl animate-fade-in shadow-md w-full max-w-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <span className="text-amber-800 text-sm font-medium">
+                Demo mode is active — write operations are disabled on the public instance.
+              </span>
+            </div>
+            <button
+              onClick={() => setDemoBanner(false)}
+              className="text-amber-600 hover:text-amber-800 text-xs font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Left Column - Form */}
         <div className="flex-1 max-w-[600px] flex flex-col">
           {/* Tabs */}

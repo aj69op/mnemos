@@ -19,6 +19,7 @@ export default function ForgetPage() {
   const [forgettingId, setForgettingId] = useState<string | null>(null);
   const [forgottenIds, setForgottenIds] = useState<Set<string>>(new Set());
   const [animatingOutId, setAnimatingOutId] = useState<string | null>(null);
+  const [demoBanner, setDemoBanner] = useState(false);
 
   useEffect(() => {
     api
@@ -32,8 +33,10 @@ export default function ForgetPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Filter to CHURNED entities only, then apply search + forgotten filter
   const filteredEntities = useMemo(() => {
     return entities.filter((e) => {
+      if (e.state !== "CHURNED") return false;
       if (forgottenIds.has(e.entity_id)) return false;
       if (search.trim()) {
         return e.entity_id.toLowerCase().includes(search.trim().toLowerCase());
@@ -42,18 +45,25 @@ export default function ForgetPage() {
     });
   }, [entities, forgottenIds, search]);
 
-  const atRiskCount = useMemo(
-    () => filteredEntities.filter((e) => e.state === "AT_RISK").length,
-    [filteredEntities]
-  );
-
   const totalOpenPromises = useMemo(
     () => filteredEntities.reduce((sum, e) => sum + e.open_promises, 0),
     [filteredEntities]
   );
 
-  const handleConfirmForget = (entityId: string) => {
+  const handleConfirmForget = async (entityId: string) => {
     setAnimatingOutId(entityId);
+    try {
+      await api.forgetEntity(entityId);
+    } catch (err: any) {
+      if (err?.status === 403) {
+        setDemoBanner(true);
+      } else {
+        console.error(err);
+      }
+      setAnimatingOutId(null);
+      setForgettingId(null);
+      return;
+    }
     setTimeout(() => {
       setForgottenIds((prev) => new Set(prev).add(entityId));
       setForgettingId(null);
@@ -67,17 +77,36 @@ export default function ForgetPage() {
       <div className="border-b border-gray-200 px-8 pt-8 pb-6">
         <h1 className="font-bold text-[#111111] text-2xl leading-8">Forget</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Review and manage entity memory. Remove entities from active tracking.
+          Remove churned entities from active tracking. Historical data is preserved.
         </p>
       </div>
 
       <div className="px-8 py-6 flex-1 overflow-y-auto">
+        {/* Demo Mode Banner */}
+        {demoBanner && (
+          <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl mb-4 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <span className="text-amber-800 text-sm font-medium">
+                Demo mode is active — write operations are disabled on the public instance.
+              </span>
+            </div>
+            <button
+              onClick={() => setDemoBanner(false)}
+              className="text-amber-600 hover:text-amber-800 text-xs font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Warning Banner */}
         <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-amber-800 text-sm leading-relaxed">
-            Forgetting an entity removes it from your active view. Historical
-            data is preserved in the backend.
+            Only <strong>CHURNED</strong> entities are shown here. Forgetting an entity removes it 
+            from your active dashboard, alerts, and entity list. Historical data is preserved in the backend 
+            and can still be accessed via direct URL.
           </p>
         </div>
 
@@ -87,8 +116,8 @@ export default function ForgetPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="outline-none shadow-[0_14px_30px_rgba(17,17,17,0.10)] transition-all duration-300 rounded-md bg-white text-[#111111] text-sm border-gray-200 border pl-9 pr-10 py-2 w-full focus:border-[#1E3A2F]"
-            placeholder="Filter entities by ID…"
+            className="outline-none shadow-[0_14px_30px_rgba(17,17,17,0.10)] transition-all duration-300 rounded-md !bg-white text-[#111111] text-sm border-gray-200 border pl-9 pr-10 py-2 w-full focus:!bg-white focus:border-[#1E3A2F]"
+            placeholder="Filter churned entities by ID…"
           />
           {search && (
             <button
@@ -101,26 +130,18 @@ export default function ForgetPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-3 mt-6 gap-4">
+        <div className="grid grid-cols-2 mt-6 gap-4">
           <div className="shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
             <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-              Total Entities
+              Churned Entities
             </div>
-            <div className="leading-none font-semibold text-[#111111] text-[28px] mt-3">
+            <div className="leading-none font-semibold text-red-600 text-[28px] mt-3">
               {loading ? "—" : filteredEntities.length}
             </div>
           </div>
-          <div className="border-t-amber-500 border-t-2 shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
-            <div className="uppercase text-amber-600 text-[11px] tracking-[2.24px]">
-              At Risk
-            </div>
-            <div className="leading-none font-semibold text-amber-700 text-[28px] mt-3">
-              {loading ? "—" : atRiskCount}
-            </div>
-          </div>
           <div className="shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
             <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-              Total Open Promises
+              Open Promises (Churned)
             </div>
             <div className="leading-none font-semibold text-[#111111] text-[28px] mt-3">
               {loading ? "—" : totalOpenPromises}
@@ -142,7 +163,6 @@ export default function ForgetPage() {
             {filteredEntities.map((entity) => {
               const isConfirming = forgettingId === entity.entity_id;
               const isAnimatingOut = animatingOutId === entity.entity_id;
-              const isAtRisk = entity.state === "AT_RISK";
               const stateStyle =
                 STATE_STYLES[entity.state] || "bg-gray-50 text-gray-700";
               const typeClass =
@@ -155,9 +175,8 @@ export default function ForgetPage() {
                   key={entity.entity_id}
                   className={`
                     shadow-[0_14px_34px_rgba(17,17,17,0.08)] rounded-2xl bg-white border border-gray-200 p-5
-                    transition-all duration-300
-                    ${isAtRisk ? "border-l-[3px] border-l-amber-400" : ""}
-                    ${isAnimatingOut ? "opacity-0 scale-95" : "opacity-100 scale-100"}
+                    transition-all duration-300 border-l-[3px] border-l-red-400
+                    ${isAnimatingOut ? "opacity-0 scale-95 translate-y-6" : "opacity-100 scale-100 translate-y-0"}
                   `}
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -218,7 +237,7 @@ export default function ForgetPage() {
                           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
                           <span className="text-red-800 text-sm">
                             Are you sure? This will remove{" "}
-                            <strong>{entity.entity_id}</strong> from view.
+                            <strong>{entity.entity_id}</strong> from active tracking.
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -255,13 +274,13 @@ export default function ForgetPage() {
             <div className="text-center">
               <p className="font-semibold text-[#111111] text-sm">
                 {search
-                  ? "No entities match your search"
-                  : "All entities have been forgotten"}
+                  ? "No churned entities match your search"
+                  : "No churned entities found"}
               </p>
               <p className="text-gray-400 text-sm mt-1">
                 {search
                   ? "Try adjusting your filter criteria."
-                  : "Your active tracking view is clear."}
+                  : "Only entities with CHURNED state appear here for cleanup."}
               </p>
             </div>
             {search && (

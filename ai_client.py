@@ -220,6 +220,10 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
                 continue
 
             # fatal or transient retries exhausted
+            err_str = str(e).lower()
+            if "image" in err_str and ("not support" in err_str or "cannot read" in err_str):
+                logger.warning(f"[gemini/{model_name}] Multimodal input rejected — prompt may contain file-like text")
+                raise ValueError(f"Image content detected in query text. Gemini models only accept text. Please remove image/file references from your query.") from e
             logger.error(f"[gemini/{model_name}] Failed ({error_type}): {e}")
             raise
 

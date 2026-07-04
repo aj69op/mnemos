@@ -26,6 +26,7 @@ import io
 import csv
 import os
 import asyncio
+import traceback
 import httpx
 from datetime import datetime, timezone
 from dataclasses import asdict
@@ -65,7 +66,7 @@ else:
 GEMINI_FALLBACK_WINDOW = int(os.environ.get("GEMINI_FALLBACK_WINDOW", "20"))
 
 
-async def _cognee_request(method: str, path: str, **kwargs) -> dict | list | None:
+async def _cognee_request(method: str, path: str, timeout: float = 20.0, **kwargs) -> dict | list | None:
     """Make an authenticated request to the Cognee Cloud Pro API."""
     url = f"{COGNEE_API_BASE}/api/v1{path}"
     headers = {
@@ -73,7 +74,7 @@ async def _cognee_request(method: str, path: str, **kwargs) -> dict | list | Non
         "X-Tenant-Id": COGNEE_TENANT_ID,
         "Content-Type": "application/json",
     }
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.request(method, url, headers=headers, **kwargs)
         resp.raise_for_status()
         if resp.status_code == 204:
@@ -237,14 +238,91 @@ async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
 
 # ─── Route 2: POST /query ─────────────────────────────────────────────────────
 
+def _extract_cognee_answer(results: list) -> str | None:
+    """Extract and validate Cognee search results."""
+    answer_parts = []
+    for r in results:
+        if isinstance(r, dict) and "search_result" in r:
+            sr = r["search_result"]
+            if isinstance(sr, list):
+                answer_parts.extend(str(item) for item in sr)
+            else:
+                answer_parts.append(str(sr))
+        elif isinstance(r, dict) and "text" in r:
+            answer_parts.append(r["text"])
+        elif isinstance(r, dict) and "content" in r:
+            answer_parts.append(r["content"])
+        elif isinstance(r, dict) and "chunk_text" in r:
+            answer_parts.append(r["chunk_text"])
+        elif isinstance(r, str):
+            answer_parts.append(r)
+        else:
+            answer_parts.append(str(r))
+
+    clean_answer = "\n".join(answer_parts).strip()
+    if not clean_answer:
+        return None
+
+    # Filter only truly unhelpful responses (clarifying questions, broken responses)
+    unhelpful_markers = [
+        "node1", "triples you", "do you need details",
+        "could you please provide", "which contract or service",
+        "please share", "can you provide", "what specific",
+        "i can't determine", "i cannot determine",
+        "without the knowledge-graph", "please provide the list",
+    ]
+    lower_answer = clean_answer.lower()
+    if any(marker in lower_answer for marker in unhelpful_markers):
+        return None
+
+    return clean_answer
+
+
+async def _search_cognee(qtype: str, entity_id: str, query: str, timeout: float = 15.0) -> tuple[str, str] | None:
+    """Search Cognee with a single query type. Returns (qtype, answer) or None."""
+    try:
+        results = await _cognee_request("POST", "/search", timeout=timeout, json={
+            "query": query,
+            "query_type": qtype,
+            "dataset_name": entity_id,
+        })
+        if not results:
+            return None
+        answer = _extract_cognee_answer(results)
+        if answer:
+            print(f"[mnemos] Cognee {qtype} returned result ({len(answer)} chars)")
+            return (qtype, answer)
+        print(f"[mnemos] Cognee {qtype} returned unhelpful result")
+    except httpx.TimeoutException:
+        print(f"[mnemos] Cognee {qtype} timed out after {timeout}s")
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            print(f"[mnemos] Cognee {qtype}: no dataset for {entity_id}")
+        else:
+            print(f"[mnemos] Cognee {qtype} HTTP error: {e.response.status_code}")
+    except Exception as e:
+        print(f"[mnemos] Cognee {qtype} search failed: {e}")
+    return None
+
+
 @app.post("/query", response_model=QueryResponse)
 async def query_entity(req: QueryRequest):
     """
     Natural language query over an entity's interaction history.
 
-    Cognee Cloud: uses INSIGHTS graph search (full history).
-    Fallback: sliding window of last GEMINI_FALLBACK_WINDOW events (#3 fix).
+    Strategy (fully parallel, capped at ~30s total):
+      1. Fire all 3 Cognee query types concurrently (15s each).
+      2. Fire Gemini fallback concurrently as a safety net.
+      3. Return the first useful result.
     """
+    try:
+        return await _query_entity_impl(req)
+    except Exception:
+        traceback.print_exc()
+        raise
+
+
+async def _query_entity_impl(req: QueryRequest):
     events = storage.get_events(req.entity_id)
     if not events:
         raise HTTPException(
@@ -252,75 +330,69 @@ async def query_entity(req: QueryRequest):
             detail=f"No data found for entity '{req.entity_id}'"
         )
 
-    # ── Try Cognee Cloud semantic search (scoped to entity dataset) ──
-    if COGNEE_AVAILABLE:
-        # Try multiple query types: CHUNKS searches raw text, GRAPH_COMPLETION
-        # uses the knowledge graph to generate an answer
-        for qtype in ["CHUNKS", "GRAPH_COMPLETION", "INSIGHTS"]:
+    # ── Start Gemini fallback in background ──
+    async def run_gemini_fallback() -> str:
+        return await asyncio.to_thread(
+            _gemini_fallback_query, req.query, events, req.entity_id
+        )
+
+    gemini_task = asyncio.create_task(run_gemini_fallback())
+
+    # ── Fire Cognee searches in parallel ──
+    cognee_tasks = [
+        asyncio.create_task(_search_cognee(q, req.entity_id, req.query))
+        for q in ["CHUNKS", "GRAPH_COMPLETION", "INSIGHTS"]
+    ] if COGNEE_AVAILABLE else []
+
+    if cognee_tasks:
+        done, pending = await asyncio.wait(
+            cognee_tasks, timeout=25, return_when=asyncio.FIRST_COMPLETED
+        )
+
+        for task in done:
             try:
-                results = await _cognee_request("POST", "/search", json={
-                    "query": req.query,
-                    "query_type": qtype,
-                    "dataset_name": req.entity_id,
-                })
-                if not results:
-                    continue
-
-                answer_parts = []
-                for r in results:
-                    if isinstance(r, dict) and "search_result" in r:
-                        sr = r["search_result"]
-                        if isinstance(sr, list):
-                            answer_parts.extend(str(item) for item in sr)
-                        else:
-                            answer_parts.append(str(sr))
-                    elif isinstance(r, dict) and "text" in r:
-                        answer_parts.append(r["text"])
-                    elif isinstance(r, dict) and "content" in r:
-                        answer_parts.append(r["content"])
-                    elif isinstance(r, dict) and "chunk_text" in r:
-                        answer_parts.append(r["chunk_text"])
-                    elif isinstance(r, str):
-                        answer_parts.append(r)
-                    else:
-                        answer_parts.append(str(r))
-
-                clean_answer = "\n".join(answer_parts).strip()
-
-                # Filter out unhelpful responses: clarifying questions,
-                # "provide triples" requests, or too-short answers
-                unhelpful_markers = [
-                    "node1", "triples you", "do you need details",
-                    "could you please provide", "which contract or service",
-                    "please share", "can you provide", "what specific",
-                    "i can't determine", "i cannot determine",
-                    "without the knowledge-graph", "please provide the list",
-                ]
-                lower_answer = clean_answer.lower()
-                is_unhelpful = (
-                    len(clean_answer) < 30
-                    or any(marker in lower_answer for marker in unhelpful_markers)
+                result = task.result()
+            except Exception:
+                continue
+            if result:
+                qtype, answer = result
+                gemini_task.cancel()
+                return QueryResponse(
+                    entity_id=req.entity_id,
+                    query=req.query,
+                    answer=answer,
+                    events_searched=len(events),
+                    search_mode=f"cognee_{qtype.lower()}",
                 )
 
-                if not is_unhelpful:
-                    print(f"[mnemos] Cognee {qtype} returned good result ({len(clean_answer)} chars)")
+        if pending:
+            done2, _ = await asyncio.wait(pending, timeout=10)
+            for task in done2:
+                try:
+                    result = task.result()
+                except Exception:
+                    continue
+                if result:
+                    qtype, answer = result
+                    gemini_task.cancel()
                     return QueryResponse(
                         entity_id=req.entity_id,
                         query=req.query,
-                        answer=clean_answer,
+                        answer=answer,
                         events_searched=len(events),
                         search_mode=f"cognee_{qtype.lower()}",
                     )
-                print(f"[mnemos] Cognee {qtype} returned unhelpful result, trying next type...")
-            except Exception as e:
-                print(f"[mnemos] Cognee {qtype} search failed: {e}")
 
-        print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, falling back to Gemini")
+        print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, using Gemini fallback")
 
-    # ── Gemini/Groq fallback with sliding window ──
-    answer = await asyncio.to_thread(
-        _gemini_fallback_query, req.query, events, req.entity_id
-    )
+    # ── Use Gemini/Groq fallback result ──
+    try:
+        answer = await asyncio.wait_for(gemini_task, timeout=20)
+    except asyncio.TimeoutError:
+        answer = "Query timed out. Please try a more specific question."
+    except Exception as e:
+        answer = f"Query failed: {str(e)}"
+
     window_used = min(len(events), GEMINI_FALLBACK_WINDOW)
     return QueryResponse(
         entity_id=req.entity_id,

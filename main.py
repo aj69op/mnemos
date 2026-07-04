@@ -278,14 +278,17 @@ def _extract_cognee_answer(results: list) -> str | None:
     return clean_answer
 
 
-async def _search_cognee(qtype: str, entity_id: str, query: str, timeout: float = 15.0) -> tuple[str, str] | None:
+async def _search_cognee(qtype: str, entity_id: str, query: str, timeout: float = 15.0, system_prompt: str = None) -> tuple[str, str] | None:
     """Search Cognee with a single query type. Returns (qtype, answer) or None."""
     try:
-        results = await _cognee_request("POST", "/search", timeout=timeout, json={
+        body = {
             "query": query,
             "query_type": qtype,
             "dataset_name": entity_id,
-        })
+        }
+        if system_prompt:
+            body["system_prompt"] = system_prompt
+        results = await _cognee_request("POST", "/search", timeout=timeout, json=body)
         if not results:
             return None
         answer = _extract_cognee_answer(results)
@@ -338,22 +341,28 @@ async def _query_entity_impl(req: QueryRequest):
 
     gemini_task = asyncio.create_task(run_gemini_fallback())
 
-    # ── Fire Cognee searches in parallel ──
-    cognee_tasks = [
-        asyncio.create_task(_search_cognee(q, req.entity_id, req.query))
-        for q in ["CHUNKS", "GRAPH_COMPLETION", "INSIGHTS"]
-    ] if COGNEE_AVAILABLE else []
+    if not COGNEE_AVAILABLE:
+        return await _finish_with_gemini(req, events, gemini_task)
 
-    if cognee_tasks:
-        done, pending = await asyncio.wait(
-            cognee_tasks, timeout=25, return_when=asyncio.FIRST_COMPLETED
-        )
-
-        for task in done:
-            try:
-                result = task.result()
-            except Exception:
-                continue
+    # ── Phase 1: GRAPH_COMPLETION (relationship-aware, 25s timeout) ──
+    RELATIONSHIP_PROMPT = (
+        "You are a relationship analyst for an ERP CRM system. "
+        "Given the user's question, search the knowledge graph for entities, "
+        "relationships, and connections between them. "
+        "Focus on describing relationship dynamics, patterns across interactions, "
+        "entity connections, and any triples that reveal how entities relate. "
+        "Return a concise natural-language answer emphasizing relationship insights."
+    )
+    gc_task = asyncio.create_task(
+        _search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
+                       timeout=25, system_prompt=RELATIONSHIP_PROMPT)
+    )
+    gc_done, gc_pending = await asyncio.wait([gc_task], timeout=25)
+    if gc_pending:
+        gc_pending[0].cancel()
+    else:
+        try:
+            result = gc_task.result()
             if result:
                 qtype, answer = result
                 gemini_task.cancel()
@@ -364,28 +373,43 @@ async def _query_entity_impl(req: QueryRequest):
                     events_searched=len(events),
                     search_mode=f"cognee_{qtype.lower()}",
                 )
+        except Exception:
+            pass
+    print(f"[mnemos] GRAPH_COMPLETION failed for {req.entity_id}, falling back to INSIGHTS/CHUNKS")
 
-        if pending:
-            done2, _ = await asyncio.wait(pending, timeout=10)
-            for task in done2:
-                try:
-                    result = task.result()
-                except Exception:
-                    continue
-                if result:
-                    qtype, answer = result
-                    gemini_task.cancel()
-                    return QueryResponse(
-                        entity_id=req.entity_id,
-                        query=req.query,
-                        answer=answer,
-                        events_searched=len(events),
-                        search_mode=f"cognee_{qtype.lower()}",
-                    )
+    # ── Phase 2: INSIGHTS + CHUNKS fallback (parallel, 15s each) ──
+    fallback_tasks = [
+        asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query)),
+        asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query)),
+    ]
+    fb_done, fb_pending = await asyncio.wait(
+        fallback_tasks, timeout=15, return_when=asyncio.FIRST_COMPLETED
+    )
+    for task in fb_done:
+        try:
+            result = task.result()
+        except Exception:
+            continue
+        if result:
+            qtype, answer = result
+            gemini_task.cancel()
+            return QueryResponse(
+                entity_id=req.entity_id,
+                query=req.query,
+                answer=answer,
+                events_searched=len(events),
+                search_mode=f"cognee_{qtype.lower()}",
+            )
+    for t in fb_pending:
+        t.cancel()
 
-        print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, using Gemini fallback")
+    print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, using Gemini fallback")
 
-    # ── Use Gemini/Groq fallback result ──
+    return await _finish_with_gemini(req, events, gemini_task)
+
+
+async def _finish_with_gemini(req: QueryRequest, events: list, gemini_task: asyncio.Task) -> QueryResponse:
+    """Await Gemini/Groq fallback and return a QueryResponse."""
     try:
         answer = await asyncio.wait_for(gemini_task, timeout=20)
     except asyncio.TimeoutError:
@@ -429,31 +453,31 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
     if not target_ids:
         raise HTTPException(status_code=404, detail="No entities found to search across")
 
+    RELATIONSHIP_PROMPT = (
+        "You are a relationship analyst for an ERP CRM system. "
+        "Given the user's question, search the knowledge graph for entities, "
+        "relationships, and connections between them. "
+        "Focus on describing relationship dynamics, patterns across interactions, "
+        "entity connections, and any triples that reveal how entities relate. "
+        "Return a concise natural-language answer emphasizing relationship insights."
+    )
+
     if COGNEE_AVAILABLE:
-        for qtype in ["GRAPH_COMPLETION", "INSIGHTS", "CHUNKS"]:
+        for qtype, extra in [("GRAPH_COMPLETION", {"system_prompt": RELATIONSHIP_PROMPT}),
+                              ("INSIGHTS", {}),
+                              ("CHUNKS", {})]:
             try:
-                results = await _cognee_request("POST", "/search", json={
+                body = {
                     "query": req.query,
                     "query_type": qtype,
                     "datasets": target_ids,
-                })
+                }
+                body.update(extra)
+                results = await _cognee_request("POST", "/search", json=body)
                 if not results:
                     continue
 
-                answer_parts = []
-                for r in results:
-                    if isinstance(r, dict) and "search_result" in r:
-                        sr = r["search_result"]
-                        if isinstance(sr, list):
-                            answer_parts.extend(str(i) for i in sr)
-                        else:
-                            answer_parts.append(str(sr))
-                    elif isinstance(r, dict):
-                        answer_parts.append(str(r.get("text") or r.get("content") or r))
-                    else:
-                        answer_parts.append(str(r))
-
-                clean_answer = "\n".join(answer_parts).strip()
+                clean_answer = _extract_cognee_answer(results)
                 if clean_answer:
                     return CrossEntityQueryResponse(
                         query=req.query,

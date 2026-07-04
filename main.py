@@ -63,7 +63,7 @@ else:
     print(f"[mnemos] Cognee Cloud Pro configured at {COGNEE_API_BASE}")
 
 # #3 FIX: max events passed to Gemini fallback prompt
-GEMINI_FALLBACK_WINDOW = int(os.environ.get("GEMINI_FALLBACK_WINDOW", "20"))
+
 
 
 async def _cognee_request(method: str, path: str, timeout: float = 20.0, **kwargs) -> dict | list | None:
@@ -313,10 +313,10 @@ async def query_entity(req: QueryRequest):
     """
     Natural language query over an entity's interaction history.
 
-    Strategy (fully parallel, capped at ~30s total):
-      1. Fire all 3 Cognee query types concurrently (15s each).
-      2. Fire Gemini fallback concurrently as a safety net.
-      3. Return the first useful result.
+    Strategy (Cognee-only, no LLM fallback):
+      1. GRAPH_COMPLETION with 35s timeout (relationship-aware + system_prompt).
+      2. INSIGHTS + CHUNKS parallel fallback (25s each) if phase 1 fails.
+      3. 404 if all Cognee types fail.
     """
     try:
         return await _query_entity_impl(req)
@@ -333,18 +333,10 @@ async def _query_entity_impl(req: QueryRequest):
             detail=f"No data found for entity '{req.entity_id}'"
         )
 
-    # ── Start Gemini fallback in background ──
-    async def run_gemini_fallback() -> str:
-        return await asyncio.to_thread(
-            _gemini_fallback_query, req.query, events, req.entity_id
-        )
-
-    gemini_task = asyncio.create_task(run_gemini_fallback())
-
     if not COGNEE_AVAILABLE:
-        return await _finish_with_gemini(req, events, gemini_task)
+        raise HTTPException(status_code=503, detail="Cognee is not available")
 
-    # ── Phase 1: GRAPH_COMPLETION (relationship-aware, 25s timeout) ──
+    # ── Phase 1: GRAPH_COMPLETION (relationship-aware, 35s timeout) ──
     RELATIONSHIP_PROMPT = (
         "You are a relationship analyst for an ERP CRM system. "
         "Given the user's question, search the knowledge graph for entities, "
@@ -355,17 +347,14 @@ async def _query_entity_impl(req: QueryRequest):
     )
     gc_task = asyncio.create_task(
         _search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
-                       timeout=25, system_prompt=RELATIONSHIP_PROMPT)
+                       timeout=35, system_prompt=RELATIONSHIP_PROMPT)
     )
-    gc_done, gc_pending = await asyncio.wait([gc_task], timeout=25)
-    if gc_pending:
-        gc_pending[0].cancel()
-    else:
+    gc_done, gc_pending = await asyncio.wait([gc_task], timeout=35)
+    if not gc_pending:
         try:
             result = gc_task.result()
             if result:
                 qtype, answer = result
-                gemini_task.cancel()
                 return QueryResponse(
                     entity_id=req.entity_id,
                     query=req.query,
@@ -375,15 +364,18 @@ async def _query_entity_impl(req: QueryRequest):
                 )
         except Exception:
             pass
+    else:
+        gc_pending[0].cancel()
+
     print(f"[mnemos] GRAPH_COMPLETION failed for {req.entity_id}, falling back to INSIGHTS/CHUNKS")
 
-    # ── Phase 2: INSIGHTS + CHUNKS fallback (parallel, 15s each) ──
+    # ── Phase 2: INSIGHTS + CHUNKS fallback (parallel, 25s each) ──
     fallback_tasks = [
-        asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query)),
-        asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query)),
+        asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=25)),
+        asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=25)),
     ]
     fb_done, fb_pending = await asyncio.wait(
-        fallback_tasks, timeout=15, return_when=asyncio.FIRST_COMPLETED
+        fallback_tasks, timeout=25, return_when=asyncio.FIRST_COMPLETED
     )
     for task in fb_done:
         try:
@@ -392,7 +384,6 @@ async def _query_entity_impl(req: QueryRequest):
             continue
         if result:
             qtype, answer = result
-            gemini_task.cancel()
             return QueryResponse(
                 entity_id=req.entity_id,
                 query=req.query,
@@ -403,27 +394,9 @@ async def _query_entity_impl(req: QueryRequest):
     for t in fb_pending:
         t.cancel()
 
-    print(f"[mnemos] All Cognee query types exhausted for {req.entity_id}, using Gemini fallback")
-
-    return await _finish_with_gemini(req, events, gemini_task)
-
-
-async def _finish_with_gemini(req: QueryRequest, events: list, gemini_task: asyncio.Task) -> QueryResponse:
-    """Await Gemini/Groq fallback and return a QueryResponse."""
-    try:
-        answer = await asyncio.wait_for(gemini_task, timeout=20)
-    except asyncio.TimeoutError:
-        answer = "Query timed out. Please try a more specific question."
-    except Exception as e:
-        answer = f"Query failed: {str(e)}"
-
-    window_used = min(len(events), GEMINI_FALLBACK_WINDOW)
-    return QueryResponse(
-        entity_id=req.entity_id,
-        query=req.query,
-        answer=answer,
-        events_searched=window_used,
-        search_mode=f"gemini_fallback_window_{window_used}",
+    raise HTTPException(
+        status_code=404,
+        detail=f"Cognee could not answer for '{req.entity_id}'. Try rephrasing your question."
     )
 
 
@@ -495,55 +468,6 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
         entities_searched=target_ids,
         search_mode="none",
     )
-
-
-def _gemini_fallback_query(query: str, events: list, entity_id: str) -> str:
-    """
-    Build a Gemini prompt from recent events only.
-
-    #3 FIX: Only passes the last GEMINI_FALLBACK_WINDOW events to stay
-    within token limits. For a customer with 500 interactions, this was
-    previously dumping the entire history and hitting a 400 from Gemini.
-    """
-    # Sliding window — most recent events only
-    window = events[-GEMINI_FALLBACK_WINDOW:]
-    total = len(events)
-    shown = len(window)
-
-    context_lines = []
-    for e in window:
-        context_lines.append(
-            f"[{e.extracted_at}] {e.event_type.upper()} | "
-            f"Sentiment: {e.sentiment} ({e.sentiment_intensity:.1f}) | "
-            f"{e.raw_text[:300]}"
-        )
-        for p in e.promises:
-            status = "✓ resolved" if p.resolved else "⚠ open"
-            context_lines.append(
-                f"  Promise ({status}): {p.description} "
-                f"[type={p.promise_type}, due={p.due_date or 'none'}]"
-            )
-
-    context = "\n".join(context_lines)
-
-    prompt = f"""You are Mnemos, a proactive relationship intelligence assistant for ERP systems.
-
-Entity: {entity_id}
-Showing last {shown} of {total} total interactions.
-
---- INTERACTION HISTORY ---
-{context}
---- END HISTORY ---
-
-Question: {query}
-
-Answer based on the interaction history above. Be specific about dates and commitments.
-If the answer isn't in the provided window, say so — don't guess."""
-
-    try:
-        return call_ai_with_fallback(prompt)
-    except Exception as e:
-        return f"Query failed: {str(e)}"
 
 
 # ─── Route 3: GET /customer/{id}/timeline ─────────────────────────────────────

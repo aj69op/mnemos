@@ -222,12 +222,19 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
             # fatal or transient retries exhausted
             err_str = str(e).lower()
             if "image" in err_str and ("not support" in err_str or "cannot read" in err_str):
-                logger.warning(f"[gemini/{model_name}] Multimodal input rejected — prompt may contain file-like text")
-                raise ValueError(f"Image content detected in query text. Gemini models only accept text. Please remove image/file references from your query.") from e
+                logger.debug(f"[gemini/{model_name}] Gemini rejected prompt as image content — suppressing")
+                raise _ImageRejectedError() from e
             logger.error(f"[gemini/{model_name}] Failed ({error_type}): {e}")
             raise
 
     raise last_exc  # unreachable but satisfies type checker
+
+
+class _ImageRejectedError(Exception):
+    """Gemini rejected the prompt as image content — not a real failure."""
+
+
+
 
 
 # ─── Groq fallback ────────────────────────────────────────────────────────────
@@ -302,6 +309,8 @@ def call_ai_with_fallback(prompt: str) -> str:
 
         try:
             return _call_gemini_model(model_name, prompt)
+        except _ImageRejectedError:
+            continue
         except Exception as e:
             gemini_errors[model_name] = str(e)
             continue   # next model

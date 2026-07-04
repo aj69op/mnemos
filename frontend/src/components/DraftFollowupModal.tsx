@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, Loader2 } from "lucide-react";
+import { X, Copy, Check, Loader2, Mail } from "lucide-react";
 
 interface DraftFollowupModalProps {
   isOpen: boolean;
@@ -85,6 +85,15 @@ export default function DraftFollowupModal({ isOpen, onClose, entityId, draft, i
             >
               Close
             </button>
+            <a
+              href={`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Follow-up: " + entityId.replace(/_/g, ' '))}&body=${encodeURIComponent(draft)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-white border border-red-200 hover:border-red-300 hover:bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              Open in Gmail
+            </a>
             <button
               onClick={handleCopy}
               className="flex items-center gap-2 bg-[#0A3020] text-white px-5 py-2 rounded-xl text-[13px] font-bold shadow-sm hover:bg-[#072418] transition-colors"

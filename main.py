@@ -544,15 +544,16 @@ async def get_commitments(entity_id: str):
 @app.get("/alerts")
 async def get_alerts():
     """Returns all active alerts from the proactive agent."""
-    alerts = agent_loop.get_latest_alerts()
+    forgotten = storage.get_forgotten_entity_ids()
 
-    # Fresh scan if no persisted alerts (first boot after migration)
+    alerts = agent_loop.get_latest_alerts()
     if not alerts:
         alerts = entropy_engine.get_all_alerts(min_severity="medium")
+    alerts = [a for a in alerts if a.entity_id not in forgotten]
 
     alert_dicts = [asdict(a) for a in alerts]
     summary = entropy_engine.get_alert_summary()
-    at_risk = agent_loop.get_at_risk_entities()
+    at_risk = [e for e in agent_loop.get_at_risk_entities() if e.get("entity_id") not in forgotten]
     status = agent_loop.get_agent_status()
 
     return {

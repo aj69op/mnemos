@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api, TimelineEvent, Commitment } from "@/lib/api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, Mail, Search } from "lucide-react";
 
 export default function CustomerProfile() {
   const params = useParams();
@@ -96,6 +96,15 @@ export default function CustomerProfile() {
               {getStateBadge(state)}
             </div>
           </div>
+          <a
+            href={`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Follow-up with " + id)}&body=${encodeURIComponent("Hi team,\n\nFollowing up regarding " + id + ".\n\nMnemos identified open commitments that need attention.\n\nBest,\n")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-red-300 hover:bg-red-50 text-gray-700 hover:text-red-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm"
+          >
+            <Mail className="w-4 h-4" />
+            Compose Gmail
+          </a>
         </div>
       </div>
       

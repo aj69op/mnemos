@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { Building2, Search, Bell, Shield, AlertOctagon, Flag, ShieldCheck, ChevronDown, Filter, Calendar, MoreHorizontal, X, ArrowRight, Tag, Zap } from "lucide-react";
+import { Building2, Search, Bell, Shield, AlertOctagon, Flag, ShieldCheck, ChevronDown, Filter, Calendar, MoreHorizontal, X, ArrowRight, Tag, Zap, Mail } from "lucide-react";
 import ConflictBanner from "@/components/ConflictBanner";
 import DraftFollowupModal from "@/components/DraftFollowupModal";
 import EntropyTicker from "@/components/EntropyTicker";
@@ -313,6 +313,14 @@ export default function DashboardPage() {
                             >
                               <Zap className="w-3.5 h-3.5" /> Draft Follow-up
                             </button>
+                            <a
+                              href={`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Follow-up: " + alert.entity_id + " - " + alert.severity + " alert")}&body=${encodeURIComponent("Hi team,\n\nThis is a follow-up regarding an open commitment with " + alert.entity_id + ":\n\n" + alert.promise_description + "\n\nMnemos flagged this as " + alert.severity + " priority.\n\nBest,\n")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-[13px] font-bold text-red-500 hover:text-red-600 transition-colors"
+                            >
+                              <Mail className="w-3.5 h-3.5" /> Compose Gmail
+                            </a>
                             <button
                               onClick={() => handleDismiss(originalIndex)}
                               className="flex items-center gap-1.5 text-[13px] font-bold text-gray-500 hover:text-gray-700 transition-colors"

@@ -53,7 +53,7 @@ export default function QueryBox({ entityId }: QueryBoxProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. What promises have we broken? How is sentiment trending?"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-electric-500/50 focus:ring-2 focus:ring-electric-500/20 transition-all duration-200 outline-none"
+            className="w-full !bg-white border border-gray-200/50 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-slate-400 focus:!bg-white focus:border-electric-500/50 focus:ring-2 focus:ring-electric-500/20 transition-all duration-200 outline-none shadow-sm"
           />
           <button
             type="submit"

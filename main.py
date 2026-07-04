@@ -48,6 +48,7 @@ import storage
 import entropy_engine
 import agent_loop
 from ai_client import call_ai_with_fallback, get_ai_status
+from conflict_detector import check_for_conflict
 
 # ─── Cognee Cloud Pro API ─────────────────────────────────────────────────────
 COGNEE_API_BASE  = os.environ.get("COGNEE_API_BASE", "https://api.cognee.ai")
@@ -180,7 +181,18 @@ async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
         event.extracted_at = req.date
 
     # 2. Store to SQLite (always first — local storage is source of truth)
-    storage.save_event(event)
+    event_id = storage.save_event(event)
+
+    # 2.5 Check for conflicts
+    if event.attribute_type and event.attribute_value:
+        from conflict_detector import check_for_conflict
+        check_for_conflict(
+            req.entity_id, 
+            event.attribute_type, 
+            event.attribute_value, 
+            event.attribute_source or "interaction note", 
+            event_id
+        )
 
     # 3. Ingest into Cognee Cloud
     cognee_status = "skipped"
@@ -472,7 +484,53 @@ async def get_alerts():
     }
 
 
-# ─── Route 6: GET /entities ───────────────────────────────────────────────────
+# ─── Route 6: GET /conflicts ──────────────────────────────────────────────────
+
+@app.get("/conflicts")
+def list_conflicts():
+    conflicts = storage.get_active_conflicts()
+    return {"conflicts": conflicts}
+
+
+# ─── Route 7: POST /draft-followup ────────────────────────────────────────────
+
+@app.post("/draft-followup")
+async def draft_followup(payload: dict):
+    entity_id = payload.get("entity_id", "unknown")
+    context = payload.get("context", "")
+    prompt = f"""Write a short, professional follow-up message (2-3 sentences) to {entity_id} regarding: {context}. Keep it direct and polite, suitable for WhatsApp or email."""
+    try:
+        draft = call_ai_with_fallback(prompt)
+        if isinstance(draft, dict):
+            draft = draft.get("text", str(draft))
+        return {"draft": str(draft)}
+    except Exception as e:
+        return {"draft": f"Dear {entity_id}, I wanted to follow up regarding {context[:100]}. Could we schedule a call to discuss this further? Best regards."}
+
+
+# ─── Route 8: GET /entropy/live ───────────────────────────────────────────────
+
+@app.get("/entropy/live")
+def live_entropy():
+    from entropy_engine import get_all_alerts
+    try:
+        alerts = get_all_alerts()
+        entity_scores = {}
+        for alert in alerts:
+            eid = alert.entity_id if hasattr(alert, 'entity_id') else alert.get('entity_id', '')
+            score = alert.entropy_score if hasattr(alert, 'entropy_score') else alert.get('entropy_score', 0)
+            if eid not in entity_scores or score > entity_scores[eid]:
+                entity_scores[eid] = score
+        result = [
+            {"entity_id": eid, "entity_name": eid.replace('_', ' ').title(), "entropy_score": round(score, 3)}
+            for eid, score in sorted(entity_scores.items(), key=lambda x: x[1], reverse=True)[:4]
+        ]
+        return {"entities": result}
+    except Exception as e:
+        return {"entities": []}
+
+
+# ─── Route 9: GET /entities ───────────────────────────────────────────────────
 
 @app.get("/entities")
 async def list_entities():

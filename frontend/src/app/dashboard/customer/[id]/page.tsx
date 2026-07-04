@@ -199,7 +199,7 @@ export default function CustomerProfile() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder="Ask a question about their interactions..."
-                  className="w-full bg-white border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm text-[#111111] shadow-sm placeholder-gray-400 focus:outline-none focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] transition-all"
+                  className="w-full !bg-white border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm text-[#111111] shadow-sm placeholder-gray-400 focus:outline-none focus:!bg-white focus:border-[#1E3A2F] focus:ring-1 focus:ring-[#1E3A2F] transition-all"
                 />
               </div>
               <button 

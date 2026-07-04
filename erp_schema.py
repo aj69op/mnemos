@@ -98,6 +98,9 @@ class ExtractedERPEvent:
     sentiment_intensity: float = 0.0            # 0.0 → 1.0
     erp_tags: list[str] = field(default_factory=list)  # free-form tags for graph filtering
     relationship_signals: list[str] = field(default_factory=list)  # "trust_building", "churn_risk" etc.
+    attribute_type: Optional[str] = None
+    attribute_value: Optional[str] = None
+    attribute_source: Optional[str] = None
     extracted_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 
@@ -115,6 +118,9 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
   "sentiment_intensity": <0.0 to 1.0>,
   "erp_tags": ["<relevant tags like: payment, delivery, renewal, onboarding, support, pricing>"],
   "relationship_signals": ["<signals like: trust_building, churn_risk, upsell_opportunity, escalation_risk, re_engagement>"],
+  "attribute_type": "<If the text mentions a delivery date, payment amount, or payment status, tag it here (e.g. delivery_date, payment_amount, payment_status). Else null>",
+  "attribute_value": "<The value of the attribute, or null>",
+  "attribute_source": "<The source of the information, e.g. WhatsApp, Invoice, CRM, or null>",
   "promises": [
     {{
       "description": "<what was promised>",
@@ -188,6 +194,9 @@ def classify_erp_event(
                 sentiment_intensity=float(data.get("sentiment_intensity", 0.0)),
                 erp_tags=data.get("erp_tags", []),
                 relationship_signals=data.get("relationship_signals", []),
+                attribute_type=data.get("attribute_type"),
+                attribute_value=data.get("attribute_value"),
+                attribute_source=data.get("attribute_source"),
             )
 
         except Exception as api_err:

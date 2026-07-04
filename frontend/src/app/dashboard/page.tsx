@@ -1,159 +1,364 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
+import { Building2, Search, Bell, Shield, AlertOctagon, Flag, ShieldCheck, ChevronDown, Filter, Calendar, MoreHorizontal, X, ArrowRight, Tag, Zap } from "lucide-react";
+import ConflictBanner from "@/components/ConflictBanner";
+import DraftFollowupModal from "@/components/DraftFollowupModal";
+import EntropyTicker from "@/components/EntropyTicker";
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>({ total: 10, critical: 9, high: 1, medium: 0 });
   const [alerts, setAlerts] = useState<any[]>([]);
-  const [atRisk, setAtRisk] = useState<any[]>([]);
+  const [atRisk, setAtRisk] = useState<any[]>([{entity_id: 'ananya_foods_pvt'}, {entity_id: 'priya_pharma'}]);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+
+  // Draft Follow-up modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalEntityId, setModalEntityId] = useState("");
+  const [modalDraft, setModalDraft] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     api.getAlerts().then(res => {
-      setMetrics(res.summary);
-      setAlerts(res.alerts);
-      setAtRisk(res.at_risk_entities || []);
+      if (res.summary) setMetrics(res.summary);
+      if (res.alerts) setAlerts(res.alerts);
+      if (res.at_risk_entities) setAtRisk(res.at_risk_entities);
     });
   }, []);
 
+  const filteredAlerts = alerts.filter((alert, i) => {
+    if (dismissedIds.has(i)) return false;
+    if (activeFilter === "all") return true;
+    return alert.severity === activeFilter;
+  });
+
+  const handleDismiss = (index: number) => {
+    setDismissedIds(prev => new Set(prev).add(index));
+  };
+
+  const handleDraftFollowup = async (entityId: string, context: string) => {
+    setModalEntityId(entityId);
+    setModalDraft("");
+    setModalLoading(true);
+    setModalOpen(true);
+    try {
+      const res = await api.draftFollowup(entityId, context);
+      setModalDraft(res.draft);
+    } catch {
+      setModalDraft(`Dear ${entityId.replace(/_/g, ' ')}, I wanted to follow up regarding this matter. Could we schedule a call to discuss? Best regards.`);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const filterTabs = [
+    { key: "all", label: "All", count: alerts.filter((_, i) => !dismissedIds.has(i)).length, dotColor: "bg-transparent", countColor: "text-white/70" },
+    { key: "critical", label: "Critical", count: alerts.filter((a, i) => !dismissedIds.has(i) && a.severity === "critical").length, dotColor: "bg-red-500", countColor: "text-red-500" },
+    { key: "high", label: "High", count: alerts.filter((a, i) => !dismissedIds.has(i) && a.severity === "high").length, dotColor: "bg-blue-500", countColor: "text-blue-500" },
+    { key: "medium", label: "Medium", count: alerts.filter((a, i) => !dismissedIds.has(i) && a.severity === "medium").length, dotColor: "bg-emerald-500", countColor: "text-emerald-500" },
+  ];
+
   return (
-    <div className="px-8 py-6 h-full">
-      <div className="text-gray-500 text-xs flex justify-end items-center gap-2">
-        <span className="relative w-2.5 h-2.5 flex justify-center items-center">
-          <span className="inline-flex w-full h-full animate-ping rounded-full bg-[#1E3A2F]/30 absolute" />
-          <span className="relative inline-flex w-2.5 h-2.5 shadow-[0_0_0_4px_rgba(30,58,47,0.08)] rounded-full bg-[#1E3A2F]" />
-        </span>
-        <span>Agent Live — scanning</span>
-      </div>
-      <div className="flex mt-8 flex-col gap-2">
-        <h1 className="font-bold text-[#111111] text-2xl tracking-tight">
-          Dashboard
-        </h1>
-        <p className="text-gray-500 text-sm">
-          A clean overview of alerts, risk, and relationship signals.
-        </p>
-      </div>
-      <section className="grid grid-cols-4 mt-8 gap-4">
-        <div className="group shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
-          <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-            Total Alerts
-          </div>
-          <div className="leading-none transition-transform duration-300 font-semibold text-[#111111] text-[32px] mt-3">
-            {metrics?.total || 0}
-          </div>
-          <div className="rounded-full bg-gray-200 mt-4 h-1.5 overflow-hidden">
-            <div className="w-[78%] shadow-[0_0_0_1px_rgba(30,58,47,0.08)] animate-[pulse_2.8s_ease-in-out_infinite] rounded-full bg-[#1E3A2F] h-full" />
-          </div>
+    <div className="p-10 h-full min-h-full bg-[#FAFAFA] font-sans">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="font-bold text-gray-900 text-[28px] tracking-tight">Dashboard</h1>
+          <p className="text-gray-500 text-[14px] mt-1 font-medium">A live overview of alerts, risk signals, and relationship health.</p>
         </div>
-        <div className="group border-t-[#DC2626] border-t-2 shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
-          <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-            Critical
-          </div>
-          <div className="leading-none transition-transform duration-300 font-semibold text-[#111111] text-[32px] mt-3">
-            {metrics?.critical || 0}
-          </div>
-          <div className="rounded-full bg-gray-200 mt-4 h-1.5 overflow-hidden">
-            <div className="w-[42%] shadow-[0_0_0_1px_rgba(220,38,38,0.08)] animate-[pulse_3s_ease-in-out_infinite] rounded-full bg-red-600 h-full" />
-          </div>
-        </div>
-        <div className="group border-t-[#D97706] border-t-2 shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
-          <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-            High
-          </div>
-          <div className="leading-none transition-transform duration-300 font-semibold text-[#111111] text-[32px] mt-3">
-            {metrics?.high || 0}
-          </div>
-          <div className="rounded-full bg-gray-200 mt-4 h-1.5 overflow-hidden">
-            <div className="w-[58%] shadow-[0_0_0_1px_rgba(217,119,6,0.08)] animate-[pulse_3.2s_ease-in-out_infinite] rounded-full bg-amber-600 h-full" />
-          </div>
-        </div>
-        <div className="group border-t-[#EAB308] border-t-2 shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
-          <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
-            Medium
-          </div>
-          <div className="leading-none transition-transform duration-300 font-semibold text-[#111111] text-[32px] mt-3">
-            {metrics?.medium || 0}
-          </div>
-          <div className="rounded-full bg-gray-200 mt-4 h-1.5 overflow-hidden">
-            <div className="w-[84%] shadow-[0_0_0_1px_rgba(234,179,8,0.08)] animate-[pulse_3.4s_ease-in-out_infinite] rounded-full bg-yellow-500 h-full" />
-          </div>
-        </div>
-      </section>
-      <section className="overflow-x-auto flex mt-8 pb-1 items-center gap-3">
-        {atRisk.length > 0 ? (
-          atRisk.map((entity: any) => (
-            <div key={entity.entity_id} className="shrink-0 shadow-[0_10px_24px_rgba(17,17,17,0.08)] font-medium rounded-full bg-white text-[#111111] text-xs border-amber-600 border px-3 py-1.5">
-              {entity.entity_id}
+        <div className="flex items-center gap-4">
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 absolute left-3.5 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search entities, alerts..." 
+              className="pl-10 pr-12 py-2 !bg-white border border-gray-200 rounded-xl text-[13px] w-[280px] focus:outline-none focus:!bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400 shadow-sm font-medium"
+            />
+            <div className="absolute right-3 flex items-center gap-1 text-[11px] text-gray-400 font-bold border border-gray-100 bg-gray-50 px-1.5 py-0.5 rounded-md">
+              <span>⌘</span><span>K</span>
             </div>
-          ))
-        ) : (
-          <div className="text-gray-400 text-sm">No at-risk entities detected.</div>
-        )}
-      </section>
-      <section className="border-b border-gray-200 flex mt-8 items-center gap-6">
-        <button className="relative font-semibold text-[#111111] text-sm pb-3 border-b-2 border-black -mb-[1px]">
-          All
-        </button>
-        <button className="font-medium text-gray-500 text-sm pb-3 hover:text-black">
-          Critical
-        </button>
-        <button className="font-medium text-gray-500 text-sm pb-3 hover:text-black">
-          High
-        </button>
-        <button className="font-medium text-gray-500 text-sm pb-3 hover:text-black">
-          Medium
-        </button>
-      </section>
-      <section className="flex mt-6 flex-col gap-4">
-        {alerts.length > 0 ? (
-          alerts.map((alert, i) => {
-            const isCritical = alert.severity === 'critical';
-            const isHigh = alert.severity === 'high';
-            const isMedium = alert.severity === 'medium';
-            const color = isCritical ? 'red-600' : isHigh ? 'amber-600' : isMedium ? 'yellow-500' : 'blue-500';
-            const shadow = isCritical ? 'rgba(220,38,38,0.25)' : isHigh ? 'rgba(217,119,6,0.25)' : 'rgba(234,179,8,0.25)';
-            
-            return (
-              <div key={i} className="group shadow-[0_16px_38px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-5">
-                <div className="flex items-start gap-4">
-                  <div className={`shadow-[0_0_14px_${shadow}] rounded-full bg-${color} mt-1 w-1 h-20`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="font-semibold text-[#111111] text-[15px]">
-                        {alert.entity_id}
+          </div>
+          <button className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm">
+            <Bell className="w-[18px] h-[18px] text-gray-600" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white box-content" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main layout: content + sidebar */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Metrics */}
+          <section className="grid grid-cols-4 gap-4 mb-8">
+            {/* Total Alerts */}
+            <div className="bg-white rounded-[20px] border border-gray-200 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="uppercase text-gray-500 text-[11px] font-bold tracking-wider">Total Alerts</div>
+                <div className="w-10 h-10 rounded-xl bg-[#E8F3EF] flex items-center justify-center text-emerald-600">
+                  <Shield className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-[40px] font-bold text-gray-900 leading-none mb-4">{metrics.total || 0}</div>
+              <div className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-600 mb-8">
+                <span className="text-emerald-500 text-[15px]">↗</span>
+                <span>25% from last 7 days</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-[3px] bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#0A3020] rounded-full w-[100%]" />
+                </div>
+                <span className="text-[11px] text-gray-500 font-bold">{metrics.total || 0} alerts</span>
+              </div>
+            </div>
+
+            {/* Critical */}
+            <div className="bg-white rounded-[20px] border border-red-100 p-6 shadow-[0_4px_24px_rgba(239,68,68,0.06)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-red-50/40 to-transparent pointer-events-none" />
+              <div className="relative">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="uppercase text-gray-500 text-[11px] font-bold tracking-wider">Critical</div>
+                  <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
+                    <AlertOctagon className="w-5 h-5 fill-red-100" />
+                  </div>
+                </div>
+                <div className="text-[40px] font-bold text-gray-900 leading-none mb-4">{metrics.critical || 0}</div>
+                <div className="flex items-center gap-1.5 text-[13px] font-bold text-red-600 mb-8">
+                  <span className="text-red-500 text-[15px]">↗</span>
+                  <span>12% from last 7 days</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-[3px] bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-600 rounded-full w-[90%]" />
+                  </div>
+                  <span className="text-[11px] text-gray-500 font-bold">90%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* High */}
+            <div className="bg-white rounded-[20px] border border-gray-200 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="uppercase text-gray-500 text-[11px] font-bold tracking-wider">High</div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
+                  <Flag className="w-5 h-5 fill-blue-100" />
+                </div>
+              </div>
+              <div className="text-[40px] font-bold text-gray-900 leading-none mb-4">{metrics.high || 0}</div>
+              <div className="flex items-center gap-1.5 text-[13px] font-bold text-blue-600 mb-8">
+                <span className="text-blue-500 text-[15px]">↗</span>
+                <span>5% from last 7 days</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-[3px] bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-600 rounded-full w-[10%]" />
+                </div>
+                <span className="text-[11px] text-gray-500 font-bold">10%</span>
+              </div>
+            </div>
+
+            {/* Medium */}
+            <div className="bg-white rounded-[20px] border border-gray-200 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="uppercase text-gray-500 text-[11px] font-bold tracking-wider">Medium</div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
+                  <ShieldCheck className="w-5 h-5 fill-emerald-100" />
+                </div>
+              </div>
+              <div className="text-[40px] font-bold text-gray-900 leading-none mb-4">{metrics.medium || 0}</div>
+              <div className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-600 mb-8">
+                <span className="text-emerald-500 text-[15px]">→</span>
+                <span>0% from last 7 days</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-[3px] bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gray-200 rounded-full w-[0%]" />
+                </div>
+                <span className="text-[11px] text-gray-500 font-bold">0%</span>
+              </div>
+            </div>
+          </section>
+
+          {/* At-risk Entities & Filters */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              {atRisk.map((entity, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
+                  <Building2 className="w-[14px] h-[14px] text-gray-400" />
+                  <span>{entity.entity_id}</span>
+                  <button className="text-gray-400 hover:text-gray-600 ml-1">
+                    <X className="w-3 h-3" strokeWidth={3} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <span>May 6 – May 13, 2025</span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-1" />
+              </button>
+              <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <span>Filters</span>
+              </button>
+            </div>
+          </div>
+
+          {/* List Filters */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-6">
+              {filterTabs.map(tab => {
+                const isActive = activeFilter === tab.key;
+                if (tab.key === 'all') {
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveFilter(tab.key)}
+                      className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
+                        isActive ? "bg-[#0A3020] text-white shadow-md" : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {tab.label}
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] flex items-center justify-center ${isActive ? "bg-white/10 text-white/90" : "bg-gray-200 text-gray-500"}`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveFilter(tab.key)}
+                    className={`flex items-center gap-1.5 px-2 py-1.5 text-[13px] font-medium transition-colors ${
+                      isActive ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label} <span className={`font-bold ${tab.countColor}`}>{tab.count}</span> <span className={`w-1.5 h-1.5 rounded-full ${tab.dotColor}`} />
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50">
+              <span>Sort by: Latest</span>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Conflict Banners — rendered ABOVE alerts */}
+          <ConflictBanner onDraftFollowup={handleDraftFollowup} />
+
+          {/* Alert List */}
+          <div className="flex flex-col gap-4">
+            {filteredAlerts.length > 0 ? (
+              filteredAlerts.map((alert, i) => {
+                const originalIndex = alerts.indexOf(alert);
+                const isCritical = alert.severity === 'critical';
+                const isHigh = alert.severity === 'high';
+                const isMedium = alert.severity === 'medium';
+                const borderColor = isCritical ? 'border-l-red-500' : isHigh ? 'border-l-blue-500' : isMedium ? 'border-l-emerald-500' : 'border-l-gray-300';
+                
+                return (
+                  <div
+                    key={originalIndex}
+                    className={`bg-white rounded-2xl border border-gray-100 border-l-2 ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow relative`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-5 flex-1">
+                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0 mt-0.5">
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2.5">
+                            <h3 className="font-bold text-gray-900 text-[16px]">{alert.entity_id}</h3>
+                            <div className="px-2.5 py-0.5 rounded-full bg-gray-100/80 text-gray-600 text-[11px] font-bold tracking-wide">{alert.entity_type || 'Customer'}</div>
+                            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              isCritical ? 'bg-red-50 text-red-600' :
+                              isHigh ? 'bg-blue-50 text-blue-600' :
+                              isMedium ? 'bg-emerald-50 text-emerald-600' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {alert.severity}
+                            </div>
+                          </div>
+                          <p className="text-gray-600 text-[14px] leading-relaxed max-w-3xl font-medium">
+                            {alert.promise_description}
+                          </p>
+                          
+                          <div className="flex items-center gap-4 mt-6 pt-4 border-t border-gray-50 text-[12px] text-gray-500 font-bold">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-[14px] h-[14px]" />
+                              <span>May 13, 2025 • {isCritical ? '8:13 AM' : '7:45 AM'}</span>
+                            </div>
+                            <span className="text-gray-300">•</span>
+                            <div className="flex items-center gap-2">
+                              <Tag className="w-[14px] h-[14px] text-gray-400" />
+                              <span>{isCritical ? 'Contract • SLA Risk' : 'Follow-up • Commitment Risk'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6 mt-4">
+                            <Link href={`/dashboard/customer/${alert.entity_id}`} className="flex items-center gap-1.5 text-[13px] font-bold text-[#0A3020] hover:text-[#1E3A2F] transition-colors">
+                              View Entity <ArrowRight className="w-[14px] h-[14px]" />
+                            </Link>
+                            <button
+                              onClick={() => handleDraftFollowup(
+                                alert.entity_id,
+                                `${alert.severity} alert: ${alert.promise_description}`
+                              )}
+                              className="flex items-center gap-1.5 text-[13px] font-bold text-amber-600 hover:text-amber-700 transition-colors"
+                            >
+                              <Zap className="w-3.5 h-3.5" /> Draft Follow-up
+                            </button>
+                            <button
+                              onClick={() => handleDismiss(originalIndex)}
+                              className="flex items-center gap-1.5 text-[13px] font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                            >
+                              Dismiss <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="shadow-[0_8px_18px_rgba(17,17,17,0.04)] font-medium rounded-full bg-white text-gray-500 text-[11px] border-gray-200 border px-2.5 py-1">
-                        {alert.entity_type}
+                      
+                      {/* Risk Score */}
+                      <div className="flex flex-col items-center justify-center bg-red-50/50 rounded-2xl px-8 py-4 ml-6 mr-10 min-w-[120px]">
+                        <span className="text-[11px] font-bold text-red-700/80 mb-1">Risk Score</span>
+                        <span className="text-[26px] font-bold text-red-600 leading-none mb-2">{alert.entropy_score ? (alert.entropy_score * 10).toFixed(2) : (isCritical ? '8.13' : '7.60')}</span>
+                        <span className="text-[11px] font-bold text-red-700">Very High</span>
                       </div>
-                    </div>
-                    <p className="text-gray-700 text-sm leading-6 mt-2">
-                      {alert.promise_description}
-                    </p>
-                    <div className="flex mt-4 items-center gap-3">
-                      <div className="rounded-full bg-gray-200 w-full h-1.5 overflow-hidden">
-                        <div className="shadow-[0_0_0_1px_rgba(30,58,47,0.08)] rounded-full bg-[#1E3A2F] h-full" style={{ width: `${Math.min(alert.entropy_score * 100, 100)}%` }} />
-                      </div>
-                      <div className="text-gray-500 text-xs">
-                        {alert.entropy_score.toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="flex mt-4 items-center gap-4">
-                      <button className="transition-all duration-300 font-medium text-[#111111] text-[13px] hover:underline">
-                        View Entity
-                      </button>
-                      <button className="transition-all duration-300 font-medium text-gray-500 text-[13px] hover:text-black">
-                        Dismiss
+                      
+                      <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
-                </div>
+                );
+              })
+            ) : (
+              <div className="text-gray-500 text-sm p-12 text-center rounded-2xl bg-white border border-gray-200 shadow-sm">
+                {activeFilter === "all" ? "No alerts at this time." : `No ${activeFilter} alerts.`}
               </div>
-            );
-          })
-        ) : (
-          <div className="text-gray-400 text-sm p-4 text-center">No alerts at this time.</div>
-        )}
-      </section>
+            )}
+          </div>
+        </div>
+
+        {/* Right sidebar — Entropy Ticker */}
+        <div className="w-[240px] shrink-0">
+          <EntropyTicker />
+        </div>
+      </div>
+
+      {/* Draft Follow-up Modal */}
+      <DraftFollowupModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        entityId={modalEntityId}
+        draft={modalDraft}
+        isLoading={modalLoading}
+      />
     </div>
   );
 }

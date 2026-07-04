@@ -211,3 +211,17 @@ def get_alert_summary() -> dict:
         "medium":   sum(1 for a in alerts if a.severity == "medium"),
         "low":      sum(1 for a in alerts if a.severity == "low"),
     }
+
+
+def get_live_entropy():
+    """Get current entropy scores for top entities without requiring alerts."""
+    alerts = get_all_alerts()
+    entity_scores = {}
+    for alert in alerts:
+        eid = alert.entity_id
+        if eid not in entity_scores or alert.entropy_score > entity_scores[eid]:
+            entity_scores[eid] = alert.entropy_score
+    return [
+        {"entity_id": eid, "entity_name": eid.replace('_', ' ').title(), "entropy_score": round(score, 3)}
+        for eid, score in sorted(entity_scores.items(), key=lambda x: x[1], reverse=True)[:4]
+    ]

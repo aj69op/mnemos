@@ -86,6 +86,22 @@ CREATE TABLE IF NOT EXISTS cognee_retry (
     completed_at    TEXT                    -- NULL = pending
 );
 CREATE INDEX IF NOT EXISTS idx_retry_pending ON cognee_retry(completed_at) WHERE completed_at IS NULL;
+
+-- Detected conflicts between sources for the same entity attribute
+CREATE TABLE IF NOT EXISTS conflicts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_id TEXT NOT NULL,
+    attribute_type TEXT NOT NULL,
+    source_a TEXT NOT NULL,
+    value_a TEXT NOT NULL,
+    event_id_a INTEGER,
+    source_b TEXT NOT NULL,
+    value_b TEXT NOT NULL,
+    event_id_b INTEGER,
+    detected_at TEXT NOT NULL,
+    resolved INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_conflicts_entity ON conflicts(entity_id, resolved);
 """
 
 

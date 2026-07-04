@@ -24,38 +24,11 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: #030712;
-  color: #f3f4f6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-}
-
-/* Dark midnight background with subtle glowing orbs */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(59, 130, 246, 0.07), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(139, 92, 246, 0.05), transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(3, 7, 18, 0.8), transparent 80%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* High-tech subtle grid overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-  background-size: 32px 32px;
-  pointer-events: none;
-  z-index: 0;
+  @apply bg-white text-gray-900 dark:bg-black dark:text-gray-100;
 }
 
 #__next, main, header, nav {
@@ -158,6 +131,74 @@ body::after {
   border-radius: 50%;
   background: currentColor;
   animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ── Landing page dynamic animations ── */
+
+@keyframes float {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+  50% { transform: translate(-50%, -50%) translateY(-8px); }
+}
+
+@keyframes floatNode1 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33% { transform: translateY(-6px) translateX(4px); }
+  66% { transform: translateY(4px) translateX(-3px); }
+}
+
+@keyframes floatNode2 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33% { transform: translateY(5px) translateX(-5px); }
+  66% { transform: translateY(-4px) translateX(3px); }
+}
+
+@keyframes floatNode3 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33% { transform: translateY(-5px) translateX(-4px); }
+  66% { transform: translateY(6px) translateX(5px); }
+}
+
+@keyframes floatNode4 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33% { transform: translateY(4px) translateX(5px); }
+  66% { transform: translateY(-6px) translateX(-4px); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+
+@keyframes concentricPulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.02); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lineGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes nodePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 14px rgba(255,255,255,0.6); }
+  50% { transform: scale(1.2); box-shadow: 0 0 22px rgba(255,255,255,1); }
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.7; }
+  25% { transform: translateY(-5px) translateX(3px); opacity: 1; }
+  50% { transform: translateY(-2px) translateX(-2px); opacity: 0.5; }
+  75% { transform: translateY(4px) translateX(4px); opacity: 0.9; }
+}
+
+@keyframes ambientDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.1); }
 }
 
 /* Focus styles */

@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = '/api';
 
 export interface Alert {
   entity_id: string;
@@ -54,6 +54,46 @@ export interface Commitment {
   recorded_at: string;
 }
 
+export interface IngestRequest {
+  text: string;
+  entity_id: string;
+  entity_type: string;
+  date?: string;
+}
+
+export interface IngestResponse {
+  status: string;
+  entity_id: string;
+  event_type: string;
+  sentiment: string;
+  sentiment_intensity: number;
+  promises_found: number;
+  relationship_state: string;
+  erp_tags: string[];
+  relationship_signals: string[];
+  cognee_status: string;
+}
+
+export interface Conflict {
+  id: number;
+  entity_id: string;
+  attribute_type: string;
+  source_a: string;
+  value_a: string;
+  event_id_a: number;
+  source_b: string;
+  value_b: string;
+  event_id_b: number;
+  detected_at: string;
+  resolved: number;
+}
+
+export interface EntropyEntry {
+  entity_id: string;
+  entity_name: string;
+  entropy_score: number;
+}
+
 export const api = {
   getAlerts: async () => {
     const res = await fetch(`${API_BASE}/alerts`);
@@ -87,5 +127,29 @@ export const api = {
       body: formData
     });
     return res.json() as Promise<{ total_rows: number, imported: number, errors: number, results: any[] }>;
-  }
+  },
+  ingestEvent: async (data: IngestRequest) => {
+    const res = await fetch(`${API_BASE}/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    return res.json() as Promise<IngestResponse>;
+  },
+  getConflicts: async () => {
+    const res = await fetch(`${API_BASE}/conflicts`);
+    return res.json() as Promise<{ conflicts: Conflict[] }>;
+  },
+  draftFollowup: async (entity_id: string, context: string) => {
+    const res = await fetch(`${API_BASE}/draft-followup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entity_id, context })
+    });
+    return res.json() as Promise<{ draft: string }>;
+  },
+  getLiveEntropy: async () => {
+    const res = await fetch(`${API_BASE}/entropy/live`);
+    return res.json() as Promise<{ entities: EntropyEntry[] }>;
+  },
 };

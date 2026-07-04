@@ -391,6 +391,31 @@ def main():
     print(f"  Total events    : {total}")
     print(f"  Entities        : {entities}")
 
+    # Seed conflict data for demo
+    from datetime import datetime
+    import logging
+    try:
+        with db_session() as conn:
+            conn.execute(
+                """INSERT INTO conflicts 
+                   (entity_id, attribute_type, source_a, value_a, event_id_a,
+                    source_b, value_b, event_id_b, detected_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ("rajesh_textiles", "delivery_date", "WhatsApp", "Tuesday July 7", 1,
+                 "Invoice (Tally)", "Friday July 10", 2, datetime.utcnow().isoformat())
+            )
+            conn.execute(
+                """INSERT INTO conflicts 
+                   (entity_id, attribute_type, source_a, value_a, event_id_a,
+                    source_b, value_b, event_id_b, detected_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ("ananya_foods_pvt", "payment_amount", "Purchase Order", "450000 INR", 5,
+                 "Invoice", "525000 INR", 8, datetime.utcnow().isoformat())
+            )
+        print("Seeded 2 conflict records")
+    except Exception as e:
+        print(f"Could not seed conflicts: {e}")
+
     print("\n[seed] Done. Start your server and hit /entities and /alerts.")
     print("       Expected: rajesh_textiles and priya_pharma show high entropy alerts.")
     print("       Expected: meenakshi_exports shows CHURNED state.")

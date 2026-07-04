@@ -224,3 +224,69 @@ def increment_cognee_retry_attempt(retry_id: int) -> None:
             """,
             (retry_id,),
         )
+
+
+def get_latest_attribute_value(entity_id: str, attribute_type: str, exclude_event_id: int = None):
+    """Get the most recent value for an attribute on an entity."""
+    with db_session() as conn:
+        query = """SELECT payload, id FROM events 
+                   WHERE entity_id = ? AND payload LIKE ?"""
+        params = [entity_id, f'%"{attribute_type}"%']
+        
+        if exclude_event_id is not None:
+            query += " AND id != ?"
+            params.append(exclude_event_id)
+            
+        query += " ORDER BY occurred_at DESC, id DESC LIMIT 1"
+        
+        row = conn.execute(query, tuple(params)).fetchone()
+        
+        if row:
+            import json
+            try:
+                data = json.loads(row[0])
+            except Exception:
+                return None
+                
+            val = data.get("attribute_value")
+            source = data.get("attribute_source") or "event"
+            
+            if val:
+                return {"value": str(val), "source": source, "event_id": row[1]}
+    return None
+
+
+def insert_conflict(conflict: dict):
+    """Insert a new conflict record."""
+    with db_session() as conn:
+        conn.execute(
+            """INSERT INTO conflicts 
+               (entity_id, attribute_type, source_a, value_a, event_id_a, 
+                source_b, value_b, event_id_b, detected_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (conflict["entity_id"], conflict["attribute_type"],
+             conflict["source_a"], conflict["value_a"], conflict.get("event_id_a"),
+             conflict["source_b"], conflict["value_b"], conflict.get("event_id_b"),
+             conflict["detected_at"])
+        )
+
+
+def get_active_conflicts():
+    """Get all unresolved conflicts."""
+    with db_session() as conn:
+        rows = conn.execute(
+            "SELECT * FROM conflicts WHERE resolved = 0 ORDER BY detected_at DESC"
+        ).fetchall()
+        columns = ["id", "entity_id", "attribute_type", "source_a", "value_a", 
+                   "event_id_a", "source_b", "value_b", "event_id_b", 
+                   "detected_at", "resolved"]
+        return [dict(zip(columns, row)) for row in rows]
+
+
+def resolve_conflict(conflict_id: int):
+    """Mark a conflict as resolved."""
+    with db_session() as conn:
+        conn.execute(
+            "UPDATE conflicts SET resolved = 1 WHERE id = ?",
+            (conflict_id,)
+        )

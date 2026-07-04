@@ -403,6 +403,76 @@ async def _query_entity_impl(req: QueryRequest):
     )
 
 
+# ─── Route: POST /query-cross-entity ─────────────────────────────────────────
+
+class CrossEntityQueryRequest(BaseModel):
+    query: str
+    entity_ids: Optional[list[str]] = None
+
+class CrossEntityQueryResponse(BaseModel):
+    query: str
+    answer: str
+    entities_searched: list[str]
+    search_mode: str
+
+@app.post("/query-cross-entity", response_model=CrossEntityQueryResponse)
+async def query_cross_entity(req: CrossEntityQueryRequest):
+    if req.entity_ids:
+        target_ids = req.entity_ids
+    else:
+        all_entities = storage.list_entities()
+        target_ids = [e["entity_id"] for e in all_entities]
+
+    MAX_ENTITIES = 15
+    target_ids = target_ids[:MAX_ENTITIES]
+
+    if not target_ids:
+        raise HTTPException(status_code=404, detail="No entities found to search across")
+
+    if COGNEE_AVAILABLE:
+        for qtype in ["GRAPH_COMPLETION", "INSIGHTS", "CHUNKS"]:
+            try:
+                results = await _cognee_request("POST", "/search", json={
+                    "query": req.query,
+                    "query_type": qtype,
+                    "datasets": target_ids,
+                })
+                if not results:
+                    continue
+
+                answer_parts = []
+                for r in results:
+                    if isinstance(r, dict) and "search_result" in r:
+                        sr = r["search_result"]
+                        if isinstance(sr, list):
+                            answer_parts.extend(str(i) for i in sr)
+                        else:
+                            answer_parts.append(str(sr))
+                    elif isinstance(r, dict):
+                        answer_parts.append(str(r.get("text") or r.get("content") or r))
+                    else:
+                        answer_parts.append(str(r))
+
+                clean_answer = "\n".join(answer_parts).strip()
+                if clean_answer:
+                    return CrossEntityQueryResponse(
+                        query=req.query,
+                        answer=clean_answer,
+                        entities_searched=target_ids,
+                        search_mode=f"cognee_cross_entity_{qtype.lower()}",
+                    )
+            except Exception as e:
+                print(f"[mnemos] cross-entity search failed for {qtype}: {e}")
+                continue
+
+    return CrossEntityQueryResponse(
+        query=req.query,
+        answer="No cross-entity insight found for that query. Try rephrasing, or narrow entity_ids.",
+        entities_searched=target_ids,
+        search_mode="none",
+    )
+
+
 def _gemini_fallback_query(query: str, events: list, entity_id: str) -> str:
     """
     Build a Gemini prompt from recent events only.

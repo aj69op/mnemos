@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
-import { Building2, Search, Bell, Shield, AlertOctagon, Flag, ShieldCheck, ChevronDown, Filter, Calendar, MoreHorizontal, X, ArrowRight, Tag, Zap, Mail } from "lucide-react";
+import { api, CrossEntityQueryResponse } from "@/lib/api";
+import { Building2, Search, Bell, Shield, AlertOctagon, Flag, ShieldCheck, ChevronDown, Filter, Calendar, MoreHorizontal, X, ArrowRight, Tag, Zap, Mail, Layers, Loader2 } from "lucide-react";
 import ConflictBanner from "@/components/ConflictBanner";
 import DraftFollowupModal from "@/components/DraftFollowupModal";
 import EntropyTicker from "@/components/EntropyTicker";
@@ -20,6 +20,28 @@ export default function DashboardPage() {
   const [modalEntityId, setModalEntityId] = useState("");
   const [modalDraft, setModalDraft] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Cross-Entity Insights
+  const [crossQuery, setCrossQuery] = useState("");
+  const [crossResult, setCrossResult] = useState<CrossEntityQueryResponse | null>(null);
+  const [crossLoading, setCrossLoading] = useState(false);
+  const [crossError, setCrossError] = useState<string | null>(null);
+
+  const handleCrossQuery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!crossQuery.trim()) return;
+    setCrossLoading(true);
+    setCrossError(null);
+    setCrossResult(null);
+    try {
+      const res = await api.queryCrossEntity(crossQuery.trim());
+      setCrossResult(res);
+    } catch (err) {
+      setCrossError(err instanceof Error ? err.message : "Cross-entity query failed");
+    } finally {
+      setCrossLoading(false);
+    }
+  };
 
   useEffect(() => {
     api.getAlerts().then(res => {
@@ -345,9 +367,68 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right sidebar — Entropy Ticker */}
-        <div className="w-[240px] shrink-0">
+        {/* Right sidebar — Entropy Ticker + Cross-Entity Insights */}
+        <div className="w-[260px] shrink-0 space-y-4">
           <EntropyTicker />
+
+          {/* Cross-Entity Insights */}
+          <div className="bg-white rounded-[20px] border border-gray-200 p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-[13px] font-bold text-gray-900">Cross-Entity Insights</h3>
+            </div>
+            <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
+              Ask questions spanning multiple entities at once.
+            </p>
+            <form onSubmit={handleCrossQuery} className="space-y-2">
+              <input
+                type="text"
+                value={crossQuery}
+                onChange={e => setCrossQuery(e.target.value)}
+                placeholder="e.g. Which vendors have delivery issues?"
+                className="w-full !bg-white border border-gray-200 rounded-xl px-3 py-2 text-[12px] text-gray-900 placeholder-gray-400 focus:outline-none focus:!bg-white focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/30 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={crossLoading || !crossQuery.trim()}
+                className="w-full flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 text-white text-[12px] font-bold px-3 py-2 rounded-xl transition-colors disabled:cursor-not-allowed"
+              >
+                {crossLoading ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Searching...</>
+                ) : (
+                  <><Layers className="w-3 h-3" /> Ask Across All Entities</>
+                )}
+              </button>
+            </form>
+
+            {crossError && (
+              <div className="mt-3 p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 text-[11px] font-medium">
+                {crossError}
+              </div>
+            )}
+
+            {crossResult && (
+              <div className="mt-3 animate-fade-in">
+                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                  <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {crossResult.answer}
+                  </p>
+                  {crossResult.entities_searched.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-indigo-100">
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Searched entities</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {crossResult.entities_searched.map(eid => (
+                          <span key={eid} className="px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                            {eid}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

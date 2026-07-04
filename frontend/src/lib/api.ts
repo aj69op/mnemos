@@ -101,6 +101,13 @@ export interface MemifyResponse {
   pruned_entities: { entity_id: string; pruned_events: number }[];
 }
 
+export interface CrossEntityQueryResponse {
+  query: string;
+  answer: string;
+  entities_searched: string[];
+  search_mode: string;
+}
+
 export const api = {
   getAlerts: async () => {
     const res = await fetch(`${API_BASE}/alerts`);
@@ -165,6 +172,18 @@ export const api = {
   },
   async runMemify(): Promise<MemifyResponse> {
     const res = await fetch(`${API_BASE}/memify`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
+    return res.json();
+  },
+  async queryCrossEntity(query: string, entityIds?: string[]): Promise<CrossEntityQueryResponse> {
+    const res = await fetch(`${API_BASE}/query-cross-entity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, entity_ids: entityIds }),
+    });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw { status: res.status, ...body };

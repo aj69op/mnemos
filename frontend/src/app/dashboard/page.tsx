@@ -249,13 +249,13 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={() => { setActiveFilter("all"); setSortOrder("latest"); }} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <span>May 6 – May 13, 2025</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-1" />
+              <button onClick={() => { setActiveFilter("all"); setSortOrder("latest"); }} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                <Calendar className="w-3 h-3 text-gray-400" />
+                <span>Jun 28 – Jul 5, 2026</span>
+                <ChevronDown className="w-2.5 h-2.5 text-gray-400" />
               </button>
-              <button onClick={() => { const el = document.querySelector('[data-cross-input]'); if (el) (el as HTMLInputElement).focus(); }} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
-                <Filter className="w-4 h-4 text-gray-400" />
+              <button onClick={() => { const el = document.querySelector('[data-cross-input]'); if (el) (el as HTMLInputElement).focus(); }} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                <Filter className="w-3 h-3 text-gray-400" />
                 <span>Cross-Query</span>
               </button>
             </div>

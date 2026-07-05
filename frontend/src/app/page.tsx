@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Network, Users } from "lucide-react";
+import Image from "next/image";
 import { api } from '@/lib/api';
 
 export default function LandingPage() {
@@ -53,14 +54,8 @@ export default function LandingPage() {
             }`}
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-xl bg-white/10 border-white/10 border flex justify-center items-center transition-transform duration-500 hover:scale-110 hover:rotate-6">
-                <div className="relative w-6 h-6">
-                  <div className="left-[18%] top-[18%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white absolute animate-[nodePulse_3s_ease-in-out_infinite]" />
-                  <div className="right-[14%] top-[28%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white/90 absolute animate-[nodePulse_3s_ease-in-out_infinite_0.5s]" />
-                  <div className="left-[42%] bottom-[12%] w-1.5 h-1.5 shadow-[0_0_14px_rgba(255,255,255,0.9)] rounded-full bg-white/90 absolute animate-[nodePulse_3s_ease-in-out_infinite_1s]" />
-                  <div className="left-[24%] top-[28%] w-[42%] rotate-[28deg] bg-white/80 absolute h-px" />
-                  <div className="left-[34%] top-[44%] w-[40%] rotate-[-34deg] bg-white/80 absolute h-px" />
-                </div>
+              <div className="w-10 h-10 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-xl bg-white/10 border-white/10 border flex justify-center items-center transition-transform duration-500 hover:scale-110 hover:rotate-6 overflow-hidden">
+                <Image src="/logo_transparent.png" alt="Mnemos" width={24} height={24} className="object-contain brightness-0 invert" />
               </div>
               <div className="flex flex-col">
                 <div className="drop-shadow-[0_0_18px_rgba(255,255,255,0.12)] font-bold text-white text-[28px] leading-8 tracking-[-0.64px]">

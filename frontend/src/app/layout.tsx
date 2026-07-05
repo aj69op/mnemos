@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mnemos ERP Intelligence",
   description: "Relationship entropy monitoring and promise tracking dashboard",
+  icons: {
+    icon: "/logo_transparent.png",
+  },
 };
 
 export default function RootLayout({

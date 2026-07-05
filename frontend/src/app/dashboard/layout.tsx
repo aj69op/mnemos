@@ -3,6 +3,7 @@
 import { Home, Network, Trash2, Upload, Users, Zap, ChevronsLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import React from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -29,14 +30,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col">
           <div className="p-6 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[14px] bg-[#0A3020] flex justify-center items-center">
-                <div className="relative w-5 h-5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E5F0EB] absolute left-0 top-1.5" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E5F0EB] absolute left-3 top-0" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E5F0EB] absolute left-4.5 top-3.5" />
-                  <span className="rotate-[-28deg] bg-[#E5F0EB] absolute left-1.5 top-2.5 w-4 h-[1.5px]" />
-                  <span className="rotate-[28deg] bg-[#E5F0EB] absolute left-2.5 top-1.5 w-4 h-[1.5px]" />
-                </div>
+              <div className="w-10 h-10 rounded-[14px] bg-[#0A3020] flex justify-center items-center overflow-hidden">
+                <Image src="/logo_transparent.png" alt="Mnemos" width={28} height={28} className="object-contain" />
               </div>
               <div className="leading-tight flex flex-col">
                 <span className="font-bold text-gray-900 text-[15px]">

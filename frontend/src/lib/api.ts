@@ -99,6 +99,8 @@ export interface MemifyResponse {
   nodes_after: number;
   pruned_count: number;
   pruned_entities: { entity_id: string; pruned_events: number }[];
+  cognee_enriched_entities: string[];
+  cognee_failed_entities: string[];
 }
 
 export interface CrossEntityQueryResponse {
@@ -198,7 +200,7 @@ export const api = {
     }
     return res.json();
   },
-  async forgetEntity(entityId: string): Promise<{ entity_id: string; forgotten: boolean }> {
+  async forgetEntity(entityId: string): Promise<{ entity_id: string; forgotten: boolean; cognee_status: string }> {
     const res = await fetch(`${API_BASE}/forget`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

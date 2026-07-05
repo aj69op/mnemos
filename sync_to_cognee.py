@@ -63,7 +63,7 @@ async def main():
     for ds in unique_datasets:
         print(f"  Cognifying {ds}...")
         try:
-            await _cognee_request("POST", "/cognify", json={"dataset_name": ds})
+            await _cognee_request("POST", "/cognify", json={"datasets": [ds]})
             print(f"  Cognified {ds} successfully.")
         except Exception as e:
             print(f"  Error cognifying {ds}: {e}")

@@ -790,6 +790,8 @@ async def run_memify(_=Depends(require_write_access)):
     Entropy-weighted pruning pass: soft-deletes low-signal events
     (neutral type, neutral sentiment, no promises) to keep working
     memory sharp. Reversible at the DB level (pruned=1, not deleted).
+    Also triggers Cognee's own improve/memify pass on each affected
+    entity to keep derived graph embeddings current.
     """
     nodes_before = storage.count_total_events(include_pruned=False)
 
@@ -803,6 +805,20 @@ async def run_memify(_=Depends(require_write_access)):
     for _id, entity_id in candidates:
         per_entity[entity_id] = per_entity.get(entity_id, 0) + 1
 
+    cognee_enriched, cognee_failed = [], []
+    if COGNEE_AVAILABLE:
+        for entity_id in per_entity:
+            try:
+                await _cognee_request(
+                    "POST", "/cognify",
+                    json={"datasets": [entity_id], "run_in_background": False},
+                    timeout=120.0,
+                )
+                cognee_enriched.append(entity_id)
+            except Exception as e:
+                cognee_failed.append(entity_id)
+                print(f"[mnemos] Cognee cognify failed for {entity_id}: {e}")
+
     return {
         "nodes_before": nodes_before,
         "nodes_after": nodes_after,
@@ -811,6 +827,8 @@ async def run_memify(_=Depends(require_write_access)):
             {"entity_id": eid, "pruned_events": count}
             for eid, count in per_entity.items()
         ],
+        "cognee_enriched_entities": cognee_enriched,
+        "cognee_failed_entities": cognee_failed,
     }
 
 
@@ -821,9 +839,28 @@ class ForgetRequest(BaseModel):
 
 @app.post("/forget")
 async def forget_entity(req: ForgetRequest, _=Depends(require_write_access)):
-    """Soft-delete an entity from active views. History is preserved."""
+    """Soft-delete an entity from active views. History is preserved.
+    Also clears the entity's derived memory in Cognee Cloud (graph + embeddings)
+    while keeping raw uploaded text, so it's reversible on both sides."""
     storage.forget_entity(req.entity_id)
-    return {"entity_id": req.entity_id, "forgotten": True}
+
+    cognee_status = "skipped"
+    if COGNEE_AVAILABLE:
+        try:
+            await _cognee_request(
+                "POST", "/forget",
+                json={"dataset": req.entity_id, "memory_only": True},
+                timeout=30.0,
+            )
+            cognee_status = "cleared"
+        except httpx.HTTPStatusError as e:
+            cognee_status = "not_synced" if e.response.status_code == 404 else f"failed: {e.response.status_code}"
+            print(f"[mnemos] Cognee forget failed for {req.entity_id}: {e}")
+        except Exception as e:
+            cognee_status = f"failed: {str(e)[:80]}"
+            print(f"[mnemos] Cognee forget failed for {req.entity_id}: {e}")
+
+    return {"entity_id": req.entity_id, "forgotten": True, "cognee_status": cognee_status}
 
 
 # ─── Health Check ─────────────────────────────────────────────────────────────

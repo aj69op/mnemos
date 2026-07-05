@@ -88,7 +88,8 @@ export default function MemifyPage() {
                 <p className="text-gray-500 text-sm mt-1 leading-relaxed">
                   Memify scans all stored events and identifies <strong>low-signal noise</strong> — 
                   interactions with neutral sentiment, neutral type, and zero promises. These are 
-                  soft-deleted (pruned) to keep the knowledge graph focused on what matters.
+                  soft-deleted from Mnemos's local memory layer. Cognee's own graph-enrichment
+                  pipeline (<code>/cognify</code>) runs on every affected entity to keep the deeper graph current.
                 </p>
               </div>
             </div>
@@ -144,7 +145,7 @@ export default function MemifyPage() {
                 <h3 className="text-emerald-800 font-bold">Memify Pass Complete</h3>
                 <p className="text-emerald-600 text-sm">
                   {result.pruned_count > 0
-                    ? `Successfully pruned ${result.pruned_count} low-signal event${result.pruned_count !== 1 ? "s" : ""} from the knowledge graph.`
+                    ? `Successfully pruned ${result.pruned_count} low-signal event${result.pruned_count !== 1 ? "s" : ""} from Mnemos's local memory layer.`
                     : "No low-signal events found — your memory is already clean!"}
                 </p>
               </div>
@@ -175,9 +176,24 @@ export default function MemifyPage() {
                 <div className="text-center py-4 border-t border-gray-100">
                   <span className="inline-flex items-center gap-2 bg-[#E8F3EF] text-[#1E3A2F] font-bold text-sm px-4 py-2 rounded-full">
                     <Zap className="w-4 h-4" />
-                    {result.pruned_count} low-signal event{result.pruned_count !== 1 ? "s" : ""} pruned
+                    {result.pruned_count} low-signal event{result.pruned_count !== 1 ? "s" : ""} pruned locally
                   </span>
                 </div>
+
+                {/* Cognee Enrichment */}
+                {result.cognee_enriched_entities && result.cognee_enriched_entities.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 font-bold text-sm px-4 py-2 rounded-full">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Cognee /cognify enriched {result.cognee_enriched_entities.length} entit{result.cognee_enriched_entities.length !== 1 ? "ies" : "y"}
+                    </span>
+                    {result.cognee_failed_entities && result.cognee_failed_entities.length > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-amber-600 text-xs">
+                        {result.cognee_failed_entities.length} failed
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Affected Entities */}
                 {result.pruned_entities.length > 0 && (
@@ -224,7 +240,8 @@ export default function MemifyPage() {
             <h4 className="font-bold text-[#111111]">How Memify Works</h4>
             <ul className="list-disc pl-4 space-y-1">
               <li>Scans all events for low-signal noise (neutral type + neutral sentiment + zero promises).</li>
-              <li>Soft-deletes matching events — they&apos;re excluded from timelines, alerts, and entity counts.</li>
+              <li>Soft-deletes matching events from Mnemos's local memory layer — excluded from timelines, alerts, and entity counts.</li>
+              <li>Also calls Cognee's <code>/cognify</code> pipeline on each affected entity to keep derived graph embeddings current.</li>
               <li>Pruning is reversible at the database level (events are marked, not destroyed).</li>
               <li>Run multiple passes as new data is ingested to keep memory compact.</li>
             </ul>

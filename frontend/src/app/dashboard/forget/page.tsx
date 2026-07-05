@@ -19,6 +19,7 @@ export default function ForgetPage() {
   const [forgettingId, setForgettingId] = useState<string | null>(null);
   const [forgottenIds, setForgottenIds] = useState<Set<string>>(new Set());
   const [animatingOutId, setAnimatingOutId] = useState<string | null>(null);
+  const [cogneeStatuses, setCogneeStatuses] = useState<Record<string, string>>({});
   const [demoBanner, setDemoBanner] = useState(false);
 
   useEffect(() => {
@@ -53,7 +54,10 @@ export default function ForgetPage() {
   const handleConfirmForget = async (entityId: string) => {
     setAnimatingOutId(entityId);
     try {
-      await api.forgetEntity(entityId);
+      const resp = await api.forgetEntity(entityId);
+      if (resp.cognee_status) {
+        setCogneeStatuses((prev) => ({ ...prev, [entityId]: resp.cognee_status }));
+      }
     } catch (err: any) {
       if (err?.status === 403) {
         setDemoBanner(true);
@@ -105,7 +109,8 @@ export default function ForgetPage() {
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-amber-800 text-sm leading-relaxed">
             Only <strong>CHURNED</strong> entities are shown here. Forgetting an entity removes it 
-            from your active dashboard, alerts, and entity list. Historical data is preserved in the backend 
+            from your active dashboard, alerts, and entity list, and clears its derived graph embeddings
+            from Cognee Cloud (<code>memory_only: true</code>). Historical data is preserved in the backend 
             and can still be accessed via direct URL.
           </p>
         </div>
@@ -228,6 +233,21 @@ export default function ForgetPage() {
                       </button>
                     )}
                   </div>
+
+                  {/* Cognee Status */}
+                  {cogneeStatuses[entity.entity_id] && !isConfirming && (
+                    <div className="mt-3 text-xs">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium ${
+                        cogneeStatuses[entity.entity_id] === "cleared"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : cogneeStatuses[entity.entity_id] === "skipped"
+                          ? "bg-gray-100 text-gray-500"
+                          : "bg-amber-50 text-amber-700"
+                      }`}>
+                        Cognee: {cogneeStatuses[entity.entity_id] === "cleared" ? "memory cleared" : cogneeStatuses[entity.entity_id]}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Confirmation Overlay */}
                   {isConfirming && (

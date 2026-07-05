@@ -6,6 +6,7 @@
 [![API Docs](https://img.shields.io/badge/API-docs-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/docs)
 [![Backend Health](https://img.shields.io/badge/health-check-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/health)
 [![License](https://img.shields.io/badge/license-MIT-0A3020?style=for-the-badge)](LICENSE)
+[![Demo Video](https://img.shields.io/badge/demo-video-0A3020?style=for-the-badge)](https://youtu.be/YOUR_VIDEO_ID)
 
 ---
 
@@ -184,8 +185,10 @@ Frontend: `http://localhost:3000`
 | `POST` | `/query-cross-entity` | Query across multiple entities |
 | `GET` | `/entities` | List all entities + states |
 | `GET` | `/alerts` | Active proactive alerts |
+| `GET` | `/conflicts` | Cross-source conflict list |
 | `GET` | `/customer/{id}/timeline` | Full interaction timeline |
 | `GET` | `/customer/{id}/commitments` | Open promises + entropy scores |
+| `GET` | `/entropy/live` | Live entropy scores |
 | `POST` | `/draft-followup` | AI-drafted follow-up message |
 | `GET` | `/health` | Service health + AI model status |
 | `POST` | `/memify` | Prune low-signal memories |
@@ -254,6 +257,10 @@ The background agent writes to SQLite tables directly. For horizontal scaling, r
 - [ ] Vector similarity for LLM fallback (replace sliding window with FAISS)
 
 ---
+
+## AI Assistance Disclosure
+
+This project was developed with AI-assisted tooling. Claude (by Antropic) was used for code generation, refactoring, debugging, and documentation writing under the direction of the human author. All architectural decisions, business logic, and quality control were reviewed and approved by the human author. In accordance with the hackathon rules, AI assistance is disclosed here.
 
 ## Team
 

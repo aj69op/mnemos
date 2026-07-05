@@ -1,7 +1,7 @@
 """
 main.py — Mnemos FastAPI Backend
 ==================================
-7 routes + CORS + cognee integration + startup agent loop.
+14 routes + CORS + cognee integration + startup agent loop.
 
 Changes from original:
   #3 FIX: Gemini fallback now uses a sliding window of last 20 events
@@ -514,94 +514,33 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
                 print(f"[mnemos] cross-entity search failed for {qtype}: {e}")
                 continue
 
-    # ── Local demo fallback ──────────────────────────────────────────────────
-    q = req.query.lower()
+    # ── Local data overview (when Cognee is unavailable) ─────────────────────
     all_entities_data = storage.list_entities()
     all_alerts = agent_loop.get_latest_alerts()
     if not all_alerts:
         all_alerts = entropy_engine.get_all_alerts(min_severity="medium")
 
-    demo_answers = {
-        "vendor": "**Vendor Delivery & Payment Issues**\n\n"
-                  "• **Acme Corp** — Payment dispute: Invoice #409 overdue. Promised payment by June 10. "
-                  "Flagged for renewal renegotiation.\n"
-                  "• **GlobEx Ltd** — Announced 15% price increase on server hardware. "
-                  "Need to evaluate alternatives.\n"
-                  "• **Initech Inc** — SLA breach (48hr response on P2 issue). "
-                  "Contract termination notice sent.\n"
-                  "• **Stark Supply** — New logistics vendor. Pilot delivery completed successfully. "
-                  "Negotiating volume discount.",
-
-        "delivery": "**Delivery & Logistics Issues**\n\n"
-                    "• **Acme Corp** — Invoice #409 payment processing delayed despite confirmation.\n"
-                    "• **Stark Supply** — Pilot delivery for Meenakshi Exports completed successfully.\n"
-                    "• **Suresh Logistics** — Pilot setup underway on 5 trucks with GPS integration.\n"
-                    "• **GlobEx Ltd** — Q2 order delivered on time. 12 new servers racked.",
-
-        "payment": "**Payment-Related Issues Across Entities**\n\n"
-                   "• **Rajesh Textiles** — Outstanding balance of ₹1.2L. Payment deadline extended by 2 weeks. "
-                   "Sent multiple reminders. Customer apologetic.\n"
-                   "• **Acme Corp** — Invoice #409 for ₹2.4L overdue. Payment promised by June 10.\n"
-                   "• **Meenakshi Exports** — Discount deadline (10% off) expired without response.\n"
-                   "• **Ananya Foods Pvt** — Annual renewal PO pending. Verbally confirmed.",
-
-        "risk": "**Entities Currently At Risk**\n\n"
-                "• **Priya Pharma** — CRITICAL: 3 consecutive negative interactions. "
-                "Competitor mentioned, going dark. Unresolved compliance issue.\n"
-                "• **Rajesh Textiles** — HIGH: Payment overdue ₹1.2L. "
-                "Extended deadline, no transfer yet despite promises.\n"
-                "• **Acme Corp** — HIGH: Payment dispute unresolved. "
-                "Escalated to manager.\n"
-                "• **GlobEx Ltd** — MEDIUM: Price increase pressure. "
-                "May need to renegotiate contract.",
-
-        "referral": "**Cross-Entity Referrals & Connections**\n\n"
-                    "• **Rajesh Textiles** → **Suresh Logistics**: Rajesh referred Suresh to us. "
-                    "Mutual trust established.\n"
-                    "• **Stark Supply** → **Meenakshi Exports**: Stark delivered to Meenakshi's warehouse. "
-                    "Positive feedback received.\n"
-                    "• **Priya Pharma** ↔ **Rajesh Textiles**: Both met at Surat expo. "
-                    "Priya offered to share experience with Rajesh.\n"
-                    "• **Vikram Tech Solutions** → **Acme Corp**: Vikram knows Acme's CTO. "
-                    "Potential introduction for renewal negotiations.\n"
-                    "• **Wayne Retail** → **Ananya Foods**: Wayne is in talks with Ananya's competitor. "
-                    "No exclusivity conflict.",
-
-        "contract": "**Contracts & Renewals**\n\n"
-                    "• **Rajesh Textiles** — ₹2.4L annual contract signed. Active onboarding completed.\n"
-                    "• **Ananya Foods Pvt** — Annual renewal confirmed verbally. "
-                    "₹60K add-on quote sent for vendor payment module.\n"
-                    "• **Umbrella Co** — Cyber insurance renewal. 10% premium increase.\n"
-                    "• **Initech Inc** — Contract termination in progress. 90-day notice period.",
-    }
-
-    for keyword, answer in demo_answers.items():
-        if keyword in q:
-            return CrossEntityQueryResponse(
-                query=req.query,
-                answer=answer,
-                entities_searched=target_ids,
-                search_mode="demo_knowledge_base",
-            )
-
-    # Generic answer when no keyword matches
-    generic = "**Cross-Entity Overview**\n\n"
-    generic += f"I found **{len(all_entities_data)} entities** in the system:\n\n"
     at_risk_count = sum(1 for e in all_entities_data if e.get("state") == "AT_RISK")
     churned_count = sum(1 for e in all_entities_data if e.get("state") == "CHURNED")
     engaged_count = sum(1 for e in all_entities_data if e.get("state") == "ENGAGED")
-    generic += f"• **{engaged_count} Engaged** — active relationships with recent interactions\n"
-    generic += f"• **{at_risk_count} At Risk** — needs immediate attention\n"
-    generic += f"• **{churned_count} Churned** — relationships ended\n\n"
-    generic += f"**Total open promises**: {sum(e.get('open_promises', 0) for e in all_entities_data)}\n\n"
-    if all_alerts:
-        generic += f"**Active alerts**: {len(all_alerts)} (critical: {sum(1 for a in all_alerts if getattr(a, 'severity', '') == 'critical')})"
+    total_promises = sum(e.get("open_promises", 0) for e in all_entities_data)
+    critical_alerts = sum(1 for a in all_alerts if getattr(a, "severity", "") == "critical") if all_alerts else 0
+
+    answer = (
+        f"**System Overview (Cognee unavailable — showing local data)**\n\n"
+        f"I found **{len(all_entities_data)} entities** across **{engaged_count} engaged**, "
+        f"**{at_risk_count} at risk**, and **{churned_count} churned**.\n\n"
+        f"**{total_promises} open promises** tracked.\n"
+        f"**{len(all_alerts)} active alerts** (**: {critical_alerts} critical**).\n\n"
+        f"Your query could not be answered from Cognee's knowledge graph. "
+        f"Try rephrasing, or ask about specific entities with /query."
+    )
 
     return CrossEntityQueryResponse(
         query=req.query,
-        answer=generic,
+        answer=answer,
         entities_searched=target_ids,
-        search_mode="demo_overview",
+        search_mode="local_overview",
     )
 
 

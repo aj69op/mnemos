@@ -474,8 +474,10 @@ export default function DashboardPage() {
                 <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">
-                      {crossResult.search_mode === "demo_knowledge_base" ? "Knowledge Base" : 
-                       crossResult.search_mode === "demo_overview" ? "System Overview" : "AI Response"}
+                      {crossResult.search_mode === "cognee_cross_entity_graph_completion" ? "Cognee Graph" :
+                       crossResult.search_mode === "cognee_cross_entity_insights" ? "Cognee Insights" :
+                       crossResult.search_mode === "cognee_cross_entity_chunks" ? "Cognee Chunks" :
+                       crossResult.search_mode === "local_overview" ? "Local Overview" : "AI Response"}
                     </span>
                     <button onClick={() => setCrossResult(null)} className="text-gray-400 hover:text-gray-600">
                       <X className="w-3 h-3" />

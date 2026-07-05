@@ -24,6 +24,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname?.startsWith(link.href);
   };
 
+  const lifecycleSteps = ["Remember", "Recall", "Memify", "Forget"];
+  const lifecycleMap: Record<string, number> = {
+    "/dashboard/import": 0,
+    "/dashboard/graph": 1,
+    "/dashboard/entities": 1,
+    "/dashboard/customer": 1,
+    "/dashboard/memify": 2,
+    "/dashboard/forget": 3,
+  };
+  const activeLifecycleIndex = Object.entries(lifecycleMap).find(([path]) =>
+    pathname?.startsWith(path)
+  )?.[1] ?? 1;
+
   return (
     <div className="w-full min-h-screen bg-[#FDFDFD] flex text-gray-900 font-sans">
       <aside className="w-[280px] shrink-0 bg-white border-r border-gray-100 flex flex-col justify-between h-screen sticky top-0">
@@ -75,10 +88,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-6 flex flex-col gap-6">
           {/* Cognee Lifecycle Badge */}
           <div className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0A3020]/5 border border-[#0A3020]/10 rounded-xl">
-            {["Remember", "Recall", "Memify", "Forget"].map((step, i) => (
+            {lifecycleSteps.map((step, i) => (
               <React.Fragment key={step}>
-                {i > 0 && <span className="text-[#0A3020]/20 text-[10px] font-light">·</span>}
-                <span className={`text-[10px] font-bold tracking-wider ${i === 1 ? "text-[#0A3020]" : "text-[#0A3020]/50"}`}>
+                {i > 0 && <span className="text-[#0A3020]/20 text-[10px] font-light select-none">·</span>}
+                <span className={`text-[10px] font-bold tracking-wider transition-all duration-300 ${
+                  i === activeLifecycleIndex
+                    ? "text-[#0A3020] scale-105"
+                    : "text-[#0A3020]/40"
+                }`}>
                   {step}
                 </span>
               </React.Fragment>

@@ -54,7 +54,7 @@ export default function LandingPage() {
             }`}
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-xl bg-white/10 border-white/10 border flex justify-center items-center transition-transform duration-500 hover:scale-110 overflow-hidden">
+              <div className="w-14 h-14 flex justify-center items-center hover:scale-110 transition-transform duration-500">
                 <Image src="/logo_transparent.png" alt="Mnemos" width={60} height={60} className="object-contain" />
               </div>
               <div className="flex flex-col">

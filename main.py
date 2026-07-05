@@ -323,7 +323,6 @@ async def _query_entity_impl(req: QueryRequest):
         )
 
     if COGNEE_AVAILABLE:
-        # ── Phase 1: GRAPH_COMPLETION (relationship-aware, 35s timeout) ──
         RELATIONSHIP_PROMPT = (
             "You are a relationship analyst for an ERP CRM system. "
             "Given the user's question, search the knowledge graph for entities, "
@@ -332,46 +331,22 @@ async def _query_entity_impl(req: QueryRequest):
             "entity connections, and any triples that reveal how entities relate. "
             "Return a concise natural-language answer emphasizing relationship insights."
         )
-        gc_task = asyncio.create_task(
-            _search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
-                           timeout=35, system_prompt=RELATIONSHIP_PROMPT)
-        )
-        try:
-            gc_done, gc_pending = await asyncio.wait([gc_task], timeout=35)
-            if not gc_pending:
-                result = gc_task.result()
-                if result:
-                    qtype, answer = result
-                    return QueryResponse(
-                        entity_id=req.entity_id,
-                        query=req.query,
-                        answer=answer,
-                        events_searched=len(events),
-                        search_mode=f"cognee_{qtype.lower()}",
-                    )
-            else:
-                for t in gc_pending:
-                    t.cancel()
-        except Exception as e:
-            print(f"[mnemos] GRAPH_COMPLETION search error: {e}")
-
-        print(f"[mnemos] GRAPH_COMPLETION failed for {req.entity_id}, falling back to INSIGHTS/CHUNKS")
-
-        # ── Phase 2: INSIGHTS + CHUNKS fallback (parallel, 25s each) ──
-        fallback_tasks = [
-            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=25)),
-            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=25)),
+        # ── Phase 1: Try all 3 Cognee search types in parallel (5s timeout) ──
+        cognee_tasks = [
+            asyncio.create_task(_search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
+                                               timeout=5, system_prompt=RELATIONSHIP_PROMPT)),
+            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=5)),
+            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=5)),
         ]
         try:
-            fb_done, fb_pending = await asyncio.wait(
-                fallback_tasks, timeout=25, return_when=asyncio.FIRST_COMPLETED
-            )
-            for task in fb_done:
+            done, pending = await asyncio.wait(cognee_tasks, timeout=6,
+                                                return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
                 try:
                     result = task.result()
                     if result:
                         qtype, answer = result
-                        for t in fb_pending:
+                        for t in pending:
                             t.cancel()
                         return QueryResponse(
                             entity_id=req.entity_id,
@@ -382,10 +357,10 @@ async def _query_entity_impl(req: QueryRequest):
                         )
                 except Exception:
                     continue
-            for t in fb_pending:
+            for t in pending:
                 t.cancel()
         except Exception as e:
-            print(f"[mnemos] INSIGHTS/CHUNKS search error: {e}")
+            print(f"[mnemos] Cognee search error: {e}")
 
     print(f"[mnemos] Cognee failed or is not available. Falling back to local LLM for {req.entity_id}")
 
@@ -476,31 +451,39 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
     )
 
     if COGNEE_AVAILABLE:
-        for qtype, extra in [("GRAPH_COMPLETION", {"system_prompt": RELATIONSHIP_PROMPT}),
-                              ("INSIGHTS", {}),
-                              ("CHUNKS", {})]:
-            try:
-                body = {
-                    "query": req.query,
-                    "query_type": qtype,
-                    "datasets": target_ids,
-                }
-                body.update(extra)
-                results = await _cognee_request("POST", "/search", json=body)
-                if not results:
-                    continue
+        async def _try_search(qtype, extra):
+            body = {"query": req.query, "query_type": qtype, "datasets": target_ids}
+            body.update(extra)
+            return await _cognee_request("POST", "/search", json=body, timeout=8)
 
-                clean_answer = _extract_cognee_answer(results)
-                if clean_answer:
-                    return CrossEntityQueryResponse(
-                        query=req.query,
-                        answer=clean_answer,
-                        entities_searched=target_ids,
-                        search_mode=f"cognee_cross_entity_{qtype.lower()}",
-                    )
-            except Exception as e:
-                print(f"[mnemos] cross-entity search failed for {qtype}: {e}")
-                continue
+        cross_tasks = [
+            asyncio.create_task(_try_search("GRAPH_COMPLETION", {"system_prompt": RELATIONSHIP_PROMPT})),
+            asyncio.create_task(_try_search("INSIGHTS", {})),
+            asyncio.create_task(_try_search("CHUNKS", {})),
+        ]
+        try:
+            done, pending = await asyncio.wait(cross_tasks, timeout=10,
+                                                return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                try:
+                    results = task.result()
+                    clean_answer = _extract_cognee_answer(results)
+                    if clean_answer:
+                        for t in pending:
+                            t.cancel()
+                        # determine which qtype this task was
+                        return CrossEntityQueryResponse(
+                            query=req.query,
+                            answer=clean_answer,
+                            entities_searched=target_ids,
+                            search_mode="cognee_cross_entity",
+                        )
+                except Exception:
+                    continue
+            for t in pending:
+                t.cancel()
+        except Exception as e:
+            print(f"[mnemos] cross-entity search error: {e}")
 
     # ── Local data overview (when Cognee is unavailable) ─────────────────────
     all_entities_data = storage.list_entities()

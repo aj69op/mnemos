@@ -23,6 +23,17 @@ Cooldown logic:
 """
 
 import os
+
+# ─── Suppress gRPC/protobuf C-extension noise ────────────────────────
+# The Gemini SDK's compiled C-extensions scan the filesystem and print
+# "Cannot read <path>.png (this model does not support image input)"
+# directly to stderr when they encounter PNG files during directory
+# traversal. These env vars disable gRPC's verbose logging and force
+# pure-Python protobuf to avoid the filesystem-scanning C-ext entirely.
+os.environ.setdefault("GRPC_VERBOSITY", "NONE")
+os.environ.setdefault("GRPC_TRACE", "")
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 import sys
 import io
 import time

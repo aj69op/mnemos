@@ -2,29 +2,17 @@
 main.py — Mnemos FastAPI Backend
 ==================================
 14 routes + CORS + cognee integration + startup agent loop.
-
-Changes from original:
-  #3 FIX: Gemini fallback now uses a sliding window of last 20 events
-           instead of dumping all history into the prompt.
-  #4 FIX: Failed Cognee uploads are queued in cognee_retry table and
-           retried on the next agent scan, so local storage and Cognee
-           never drift silently.
-  #5 FIX: /ingest and /import-csv validate dates with validate_date_str()
-           and return 422 on bad input rather than silently defaulting.
-
-Routes:
-  POST /ingest                    → classify + cognee.add + store + update state
-  POST /query                     → cognee.search over entity dataset
-  GET  /customer/{id}/timeline    → all events for entity, chronological
-  GET  /customer/{id}/commitments → open promises + entropy scores
-  GET  /alerts                    → proactive alerts from agent loop
-  GET  /entities                  → list all known entities + states
-  POST /import-csv                → bulk CSV import
 """
+
+import os
+# Must be set before ANY protobuf/gRPC/gemini import to suppress
+# C-extension filesystem-scanning noise ("Cannot read ...png").
+os.environ.setdefault("GRPC_VERBOSITY", "NONE")
+os.environ.setdefault("GRPC_TRACE", "")
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 import io
 import csv
-import os
 import asyncio
 import traceback
 import httpx

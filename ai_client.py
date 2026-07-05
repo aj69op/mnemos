@@ -207,7 +207,8 @@ def _ensure_gemini_configured() -> bool:
             if not api_key:
                 logger.error("GEMINI_API_KEY not set — Gemini models unavailable")
                 return False
-            genai.configure(api_key=api_key)
+            with _suppress_gemini_stderr():
+                genai.configure(api_key=api_key)
             _gemini_configured = True
     return True
 
@@ -256,25 +257,99 @@ def _classify_error(e: Exception) -> str:
     return "fatal"
 
 
-# ─── Temporary Win32 stderr redirect (belt over suspenders) ────────────────────
+# ─── Triple-layer stderr suppression ─────────────────────────────────
+
+# Known noise patterns to suppress from Gemini/GRPC C-extensions
+_STDERR_NOISE_PATTERNS = [
+    "Cannot read", "does not support image input", "image.png", ".png",
+    "does not support image", "this model does not support",
+]
+
+_WIN32_STD_ERROR_HANDLE = -12
 
 @contextlib.contextmanager
-def _suppress_stderr_win32():
-    """Temporarily redirect the Win32 STD_ERROR_HANDLE to NUL."""
-    if not _stderr_redirect_active:
-        yield
-        return
+def _suppress_gemini_stderr():
+    """
+    Suppress stderr at every layer during Gemini API calls.
+
+    The Gemini C-extension (and its gRPC dependency) can write to stderr
+    via three separate mechanisms, so we need three layers:
+      Layer A: Python sys.stderr      (for print(..., file=sys.stderr))
+      Layer B: C runtime fd 2         (for fprintf(stderr, ...))
+      Layer C: Win32 STD_ERROR_HANDLE (for WriteConsole/WriteFile)
+    """
+    # Layer A: Python sys.stderr filter
+    old_stderr = sys.stderr
+    sys.stderr = _StderrFilter()  # wraps current stderr (may already be a filter, nesting is fine)
+
+    # Layer B: redirect fd 2 to a temp file (capture C-level stderr,
+    # replay non-noise content after the call)
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(delete=False, mode='wb')
+    tmp_name = tmp.name
+    tmp.close()
+    old_fd = os.dup(2)
+    fd_null = os.open(tmp_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+    os.dup2(fd_null, 2)
+    os.close(fd_null)
+
+    # Layer C: Win32 handle redirect to NUL
+    win32_active = False
     try:
-        nul = _kernel32.CreateFileW(
-            "nul", 0x40000000, 0x00000003, None, 3, 0x00000080, None
-        )
-        old = _kernel32.GetStdHandle(_WIN32_STD_ERROR_HANDLE)
-        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, nul)
-        yield
-        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, old)
-        _kernel32.CloseHandle(nul)
+        if _stderr_redirect_active:
+            _nul = _kernel32.CreateFileW(
+                "nul", 0x40000000, 0x00000003, None, 3, 0x00000080, None
+            )
+            if _nul and _nul != -1:
+                _old_win32 = _kernel32.GetStdHandle(_WIN32_STD_ERROR_HANDLE)
+                _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, _nul)
+                win32_active = True
     except Exception:
+        pass
+
+    try:
         yield
+    finally:
+        # Restore Win32 handle
+        if win32_active:
+            try:
+                _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, _old_win32)
+                _kernel32.CloseHandle(_nul)
+            except Exception:
+                pass
+
+        # Restore fd 2
+        os.dup2(old_fd, 2)
+        os.close(old_fd)
+
+        # Restore Python stderr
+        sys.stderr = old_stderr
+
+        # Read captured C-level stderr, filter noise, replay clean output
+        try:
+            with open(tmp_name, 'r', errors='replace') as f:
+                captured = f.read()
+            if captured.strip():
+                # Filter out known noise lines
+                clean_lines = []
+                for line in captured.splitlines(True):
+                    lower = line.lower()
+                    if any(p.lower() in lower for p in _STDERR_NOISE_PATTERNS):
+                        continue
+                    # Also suppress FutureWarning about deprecated package
+                    if 'futurewarning' in lower:
+                        continue
+                    clean_lines.append(line)
+                if clean_lines:
+                    old_stderr.write(''.join(clean_lines))
+                    old_stderr.flush()
+        except Exception:
+            pass
+        finally:
+            try:
+                os.unlink(tmp_name)
+            except Exception:
+                pass
 
 
 # ─── Single Gemini model call with transient retry ────────────────────────────
@@ -291,20 +366,8 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
     for attempt in range(TRANSIENT_MAX_RETRIES + 1):
         try:
             model = genai.GenerativeModel(model_name)
-            # Suppress stderr at every layer to catch Gemini C-extension
-            # noise (e.g. "Cannot read image.png" via C-level fprintf or
-            # Win32 WriteConsole). Python-level redirect_stderr can't
-            # capture either of those.
-            old_fd = os.dup(2)
-            devnull = os.open(os.devnull, os.O_WRONLY)
-            os.dup2(devnull, 2)
-            os.close(devnull)
-            try:
-                with _suppress_stderr_win32():
-                    response = model.generate_content(prompt)
-            finally:
-                os.dup2(old_fd, 2)
-                os.close(old_fd)
+            with _suppress_gemini_stderr():
+                response = model.generate_content(prompt)
             text = response.text.strip()
             _clear_cooldown(model_name)   # success → clear any prior cooldown
             logger.info(f"[gemini/{model_name}] OK (attempt {attempt + 1})")

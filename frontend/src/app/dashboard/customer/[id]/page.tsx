@@ -198,8 +198,8 @@ export default function CustomerProfile() {
         {/* Query Tool */}
         <section className="pt-6">
           <div className="shadow-[0_14px_34px_rgba(17,17,17,0.06)] rounded-2xl bg-gray-50 border border-gray-200 p-6">
-            <h2 className="font-bold text-lg tracking-tight text-[#111111] mb-2">Mnemos Intelligence</h2>
-            <p className="text-sm text-gray-500 mb-6">Ask natural language questions about this entity's history.</p>
+            <h2 className="font-bold text-lg tracking-tight text-[#111111] mb-2">Cognee Recall</h2>
+            <p className="text-sm text-gray-500 mb-6">Semantic graph query over this entity's memory nodes.</p>
             <form onSubmit={handleQuery} className="flex gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -224,7 +224,7 @@ export default function CustomerProfile() {
                     </span>
                     Searching
                   </span>
-                ) : "Query Engine"}
+                ) : "Cognee Recall"}
               </button>
             </form>
             {answer && (
@@ -233,7 +233,7 @@ export default function CustomerProfile() {
                   <div className="w-6 h-6 rounded-md bg-[#1E3A2F] flex items-center justify-center shadow-inner">
                     <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
                   </div>
-                  <span className="text-[10px] text-[#1E3A2F] uppercase tracking-widest font-bold">Mnemos AI response</span>
+                  <span className="text-[10px] text-[#1E3A2F] uppercase tracking-widest font-bold">Cognee Response</span>
                 </div>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{answer}</p>
               </div>

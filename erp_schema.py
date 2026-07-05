@@ -117,7 +117,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
   "sentiment": "<one of: positive | negative | neutral | mixed>",
   "sentiment_intensity": <0.0 to 1.0>,
   "erp_tags": ["<relevant tags like: payment, delivery, renewal, onboarding, support, pricing>"],
-  "relationship_signals": ["<signals like: trust_building, churn_risk, upsell_opportunity, escalation_risk, re_engagement>"],
+  "relationship_signals": ["<signals like: trust_building, churn_risk, upsell_opportunity, escalation_risk, re_engagement, churn_confirmed>"],
   "attribute_type": "<If the text mentions a delivery date, payment amount, or payment status, tag it here (e.g. delivery_date, payment_amount, payment_status). Else null>",
   "attribute_value": "<The value of the attribute, or null>",
   "attribute_source": "<The source of the information, e.g. WhatsApp, Invoice, CRM, or null>",
@@ -133,6 +133,10 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
 }}
 
 If there are no promises, return an empty array for "promises".
+Use "churn_confirmed" only when the text explicitly states the relationship has ended
+(contract cancelled or terminated, moved to a competitor, account formally closed).
+Use "churn_risk" instead for warning signs — anger, missed deadlines, threats to cancel —
+that haven't actually resulted in the relationship ending yet.
 Today's date is {today}.
 
 Interaction note:
@@ -266,6 +270,11 @@ def compute_relationship_state(events: list[ExtractedERPEvent]) -> RelationshipS
 
     # State machine — order matters, most severe checked first
     if any("churn_confirmed" in e.relationship_signals for e in recent):
+        return RelationshipState.CHURNED
+    if churn_signals >= 3:
+        # Sustained churn_risk across the recent window is treated as a
+        # confirmed churn even without an explicit "churn_confirmed" tag,
+        # since relying on one exact string from the LLM is brittle.
         return RelationshipState.CHURNED
     if escalations >= 2 or churn_signals >= 2:
         return RelationshipState.AT_RISK

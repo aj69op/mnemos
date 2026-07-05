@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Calendar, ChevronDown, HelpCircle, Check, MessageSquare, UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Sparkles, Calendar, ChevronDown, HelpCircle, Check, MessageSquare, UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, FileText, Archive, FileImage, File as FileIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import Papa from "papaparse";
 
@@ -9,11 +9,15 @@ export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<"paste" | "csv">("paste");
   const [demoBanner, setDemoBanner] = useState(false);
 
+  // Format tabs
+  const [activeFormat, setActiveFormat] = useState<string | null>(null);
+
   // Paste Note State
   const [text, setText] = useState("");
-  const [entityId, setEntityId] = useState("CUST-0087");
+  const [entityId, setEntityId] = useState("acme_corp");
   const [entityType, setEntityType] = useState("Customer");
-  const [date, setDate] = useState("Mar 2, 2024");
+  const today = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState(today);
   const [ingesting, setIngesting] = useState(false);
   const [ingestResult, setIngestResult] = useState<any | null>(null);
 
@@ -35,9 +39,15 @@ export default function ImportPage() {
         date
       });
       setIngestResult(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to ingest note");
+      if (err?.status === 403) {
+        setDemoBanner(true);
+      } else if (err?.status === 422) {
+        alert(err?.message || err?.detail || "Invalid date — please check the date field.");
+      } else {
+        alert("Failed to ingest note");
+      }
     } finally {
       setIngesting(false);
     }
@@ -141,6 +151,55 @@ export default function ImportPage() {
             </button>
           </div>
 
+          {/* Format selector (visible in CSV tab) */}
+          {activeTab === "csv" && (
+            <div className="mb-6">
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Upload Format
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "csv", label: "CSV", icon: FileSpreadsheet, desc: "Comma-separated values" },
+                  { key: "txt", label: "TXT", icon: FileText, desc: "Plain text logs" },
+                  { key: "pdf", label: "PDF", icon: FileImage, desc: "PDF reports" },
+                  { key: "zip", label: "ZIP", icon: Archive, desc: "Compressed archives" },
+                  { key: "xlsx", label: "XLSX", icon: FileIcon, desc: "Excel spreadsheets" },
+                  { key: "json", label: "JSON", icon: FileIcon, desc: "Structured data" },
+                  { key: "xml", label: "XML", icon: FileIcon, desc: "EDI / ERP exports" },
+                ].map(fmt => {
+                  const Icon = fmt.icon;
+                  const isActive = activeFormat === fmt.key;
+                  const isDisabled = fmt.key !== "csv";
+                  return (
+                    <button
+                      key={fmt.key}
+                      onClick={() => {
+                        setActiveFormat(fmt.key);
+                        if (fmt.key !== "csv") {
+                          alert(`${fmt.key.toUpperCase()} import coming soon — this is a demo placeholder.`);
+                        }
+                      }}
+                      disabled={false}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all border ${
+                        isDisabled
+                          ? "border-gray-100 bg-gray-50 text-gray-400 cursor-pointer hover:bg-gray-100 hover:border-gray-200"
+                          : isActive
+                          ? "border-[#0A3020] bg-[#F0FDF4] text-[#0A3020]"
+                          : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isDisabled ? "text-gray-300" : ""}`} />
+                      <span>{fmt.label}</span>
+                      {isDisabled && (
+                        <span className="text-[9px] text-gray-400 font-medium ml-0.5">soon</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {activeTab === "paste" ? (
             <>
               {/* Form Fields */}
@@ -178,7 +237,7 @@ export default function ImportPage() {
                   </label>
                   <div className="relative">
                     <input 
-                      type="text" 
+                      type="date" 
                       value={date}
                       onChange={e => setDate(e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-[14px] font-medium text-gray-900 shadow-[0_2px_10px_rgba(0,0,0,0.02)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
@@ -409,7 +468,7 @@ export default function ImportPage() {
       </div>
 
       {/* Floating Action Button */}
-      <button className="absolute bottom-10 right-10 w-12 h-12 bg-[#0A3020] rounded-full shadow-[0_8px_30px_rgba(10,48,32,0.3)] flex items-center justify-center hover:scale-105 transition-transform">
+      <button onClick={() => setActiveTab("paste")} className="absolute bottom-10 right-10 w-12 h-12 bg-[#0A3020] rounded-full shadow-[0_8px_30px_rgba(10,48,32,0.3)] flex items-center justify-center hover:scale-105 transition-transform" title="Switch to paste">
         <MessageSquare className="w-5 h-5 text-white" />
       </button>
 

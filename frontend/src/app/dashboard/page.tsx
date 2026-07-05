@@ -13,7 +13,9 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [atRisk, setAtRisk] = useState<any[]>([{entity_id: 'ananya_foods_pvt'}, {entity_id: 'priya_pharma'}]);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"latest" | "critical">("latest");
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Draft Follow-up modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,6 +28,14 @@ export default function DashboardPage() {
   const [crossResult, setCrossResult] = useState<CrossEntityQueryResponse | null>(null);
   const [crossLoading, setCrossLoading] = useState(false);
   const [crossError, setCrossError] = useState<string | null>(null);
+
+  const sampleQueries = [
+    "Which vendors have delivery issues?",
+    "What customers are at risk?",
+    "Who has payment problems?",
+    "Show me all referrals",
+    "List contracts & renewals",
+  ];
 
   const handleCrossQuery = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +53,14 @@ export default function DashboardPage() {
     }
   };
 
+  const handleBellClick = () => {
+    setActiveFilter("critical");
+  };
+
+  const handleClearAtRisk = (entityId: string) => {
+    setAtRisk(prev => prev.filter(e => e.entity_id !== entityId));
+  };
+
   useEffect(() => {
     api.getAlerts().then(res => {
       if (res.summary) setMetrics(res.summary);
@@ -55,6 +73,17 @@ export default function DashboardPage() {
     if (dismissedIds.has(i)) return false;
     if (activeFilter === "all") return true;
     return alert.severity === activeFilter;
+  }).filter(alert => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return alert.entity_id.toLowerCase().includes(q) ||
+           (alert.promise_description || "").toLowerCase().includes(q);
+  }).sort((a, b) => {
+    if (sortOrder === "critical") {
+      const sev = { critical: 0, high: 1, medium: 2, low: 3 };
+      return (sev[a.severity as keyof typeof sev] ?? 4) - (sev[b.severity as keyof typeof sev] ?? 4);
+    }
+    return 0; // latest = keep original order (chronological)
   });
 
   const handleDismiss = (index: number) => {
@@ -96,6 +125,8 @@ export default function DashboardPage() {
             <Search className="w-4 h-4 absolute left-3.5 text-gray-400" />
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search entities, alerts..." 
               className="pl-10 pr-12 py-2 !bg-white border border-gray-200 rounded-xl text-[13px] w-[280px] focus:outline-none focus:!bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400 shadow-sm font-medium"
             />
@@ -103,7 +134,7 @@ export default function DashboardPage() {
               <span>⌘</span><span>K</span>
             </div>
           </div>
-          <button className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm">
+          <button onClick={handleBellClick} className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm" title="Show critical alerts">
             <Bell className="w-[18px] h-[18px] text-gray-600" />
             <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white box-content" />
           </button>
@@ -211,21 +242,21 @@ export default function DashboardPage() {
                 <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
                   <Building2 className="w-[14px] h-[14px] text-gray-400" />
                   <span>{entity.entity_id}</span>
-                  <button className="text-gray-400 hover:text-gray-600 ml-1">
+                  <button onClick={() => handleClearAtRisk(entity.entity_id)} className="text-gray-400 hover:text-gray-600 ml-1" title="Remove from view">
                     <X className="w-3 h-3" strokeWidth={3} />
                   </button>
                 </div>
               ))}
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+              <button onClick={() => { setActiveFilter("all"); setSortOrder("latest"); }} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
                 <Calendar className="w-4 h-4 text-gray-400" />
                 <span>May 6 – May 13, 2025</span>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-1" />
               </button>
-              <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+              <button onClick={() => { const el = document.querySelector('[data-cross-input]'); if (el) (el as HTMLInputElement).focus(); }} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
                 <Filter className="w-4 h-4 text-gray-400" />
-                <span>Filters</span>
+                <span>Cross-Query</span>
               </button>
             </div>
           </div>
@@ -264,8 +295,8 @@ export default function DashboardPage() {
                 )
               })}
             </div>
-            <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50">
-              <span>Sort by: Latest</span>
+            <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50" onClick={() => setSortOrder(prev => prev === "latest" ? "critical" : "latest")}>
+              <span>Sort by: {sortOrder === "critical" ? "Critical First" : "Latest"}</span>
               <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             </div>
           </div>
@@ -352,7 +383,7 @@ export default function DashboardPage() {
                         <span className="text-[11px] font-bold text-red-700">Very High</span>
                       </div>
                       
-                      <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+                      <button onClick={() => handleDraftFollowup(alert.entity_id, alert.promise_description)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600" title="Draft follow-up">
                         <MoreHorizontal className="w-5 h-5" />
                       </button>
                     </div>
@@ -368,7 +399,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right sidebar — Entropy Ticker + Cross-Entity Insights */}
-        <div className="w-[260px] shrink-0 space-y-4">
+        <div className="w-[320px] shrink-0 space-y-4">
           <EntropyTicker />
 
           {/* Cross-Entity Insights */}
@@ -382,6 +413,7 @@ export default function DashboardPage() {
             </p>
             <form onSubmit={handleCrossQuery} className="space-y-2">
               <input
+                data-cross-input
                 type="text"
                 value={crossQuery}
                 onChange={e => setCrossQuery(e.target.value)}
@@ -401,6 +433,36 @@ export default function DashboardPage() {
               </button>
             </form>
 
+            {/* Sample queries */}
+            {!crossResult && !crossError && (
+              <div className="mt-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Try asking:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sampleQueries.map((sq, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setCrossQuery(sq);
+                        setCrossLoading(true);
+                        setCrossError(null);
+                        setCrossResult(null);
+                        api.queryCrossEntity(sq).then(res => {
+                          setCrossResult(res);
+                          setCrossLoading(false);
+                        }).catch(err => {
+                          setCrossError(err instanceof Error ? err.message : "Query failed");
+                          setCrossLoading(false);
+                        });
+                      }}
+                      className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] text-gray-600 font-medium hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
+                    >
+                      {sq}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {crossError && (
               <div className="mt-3 p-2 rounded-lg bg-red-50 border border-red-100 text-red-600 text-[11px] font-medium">
                 {crossError}
@@ -408,8 +470,17 @@ export default function DashboardPage() {
             )}
 
             {crossResult && (
-              <div className="mt-3 animate-fade-in">
+              <div className="mt-3 animate-fade-in max-h-[400px] overflow-y-auto">
                 <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">
+                      {crossResult.search_mode === "demo_knowledge_base" ? "Knowledge Base" : 
+                       crossResult.search_mode === "demo_overview" ? "System Overview" : "AI Response"}
+                    </span>
+                    <button onClick={() => setCrossResult(null)} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                   <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {crossResult.answer}
                   </p>

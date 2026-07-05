@@ -1,0 +1,8 @@
+"entity_id","entity_type","date","text"
+"acme_corp","Customer","2026-07-01","Spoke with Rohan. They are happy with the new dashboard rollout."
+"acme_corp","Customer","2026-07-05","Rohan called about Invoice #409. Promised to send payment by July 12."
+"globex_ltd","Customer","2026-07-02","Quarterly review. They complained about slow support response times."
+"globex_ltd","Customer","2026-07-08","Sent a formal apology. Promised SLA improvement by next week."
+"stark_supply","Vendor","2026-07-03","Pilot delivery completed. Quality check passed."
+"stark_supply","Vendor","2026-07-10","They promised to share volume pricing by July 18."
+"umbrella_co","Vendor","2026-07-04","Premium increase notification received. Need to reassess contract."

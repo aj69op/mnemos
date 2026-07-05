@@ -36,7 +36,7 @@ def require_write_access():
                     "Contact arkajadhav@gmail.com to request API access, "
                     "or clone the repo and run locally."
                 ),
-                "repo": "https://github.com/arka/mnemos",
+                "repo": "https://github.com/aj69op/mnemos",
                 "read_endpoints": [
                     "GET /health",
                     "GET /entities",

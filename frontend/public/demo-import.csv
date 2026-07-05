@@ -1,0 +1,24 @@
+entity_id,entity_type,date,text
+bharti_enterprises,Customer,2026-06-01,Kickoff call with Rajesh Bharti. They are evaluating our ERP platform for their textile export business and seem very interested.
+bharti_enterprises,Customer,2026-06-05,Rajesh shared their requirements doc. They need inventory tracking, order management, and GST-compliant invoicing.
+bharti_enterprises,Customer,2026-06-10,Follow-up demo went well. Rajesh mentioned they want to migrate from their existing Tally setup within 90 days.
+bharti_enterprises,Customer,2026-06-15,Sent the proposal. Promised to share pricing details by June 20.
+bharti_enterprises,Customer,2026-06-22,Rajesh called — they have a board meeting next week and need the cost breakdown in a specific format. Promised to revise and resend by June 25.
+bharti_enterprises,Customer,2026-06-28,Sent revised proposal. Rajesh says they'll discuss with their partners and get back by early July.
+desert_cart,Vendor,2026-05-20,Onboarding call with their logistics head. They handle cold storage transport and promise reliable pan-India delivery.
+desert_cart,Vendor,2026-06-01,First trial shipment scheduled. They promised to deliver a sample batch to our warehouse by June 10.
+desert_cart,Vendor,2026-06-12,Shipment arrived 2 days late. Quality was acceptable but the delay is concerning for perishable goods.
+desert_cart,Vendor,2026-06-20,Discussed SLA terms. They committed to a 48-hour delivery window with temperature tracking for the main contract.
+desert_cart,Vendor,2026-06-25,Sent the draft SLA. Waiting for their legal team to review and revert.
+elite_elec,Vendor,2026-06-08,Brijesh from Elite Electronics reached out. They supply industrial-grade components and want to be added to our vendor list.
+elite_elec,Vendor,2026-06-15,Audited their manufacturing facility in Bhiwadi. Quality control processes look solid. They promised to share compliance certificates by June 22.
+elite_elec,Vendor,2026-06-24,Received the compliance certificates. All ISO and BIS certifications are in order. Approved for pilot order.
+elite_elec,Vendor,2026-06-30,Placed first PO-103 for 500 units of MCB components. They promised delivery by July 15.
+metro_health,Partner,2026-05-25,Intro call with Metro Health's CEO. They want to partner for healthcare supply chain integration.
+metro_health,Partner,2026-06-05,Signed the partnership MOU. They promised to share API documentation by June 15 for integration testing.
+metro_health,Partner,2026-06-18,Received the API docs. Their system supports real-time inventory sync. Integration sprint planned for July.
+metro_health,Partner,2026-06-25,Kickoff meeting with their tech team. They promised to have a sandbox environment ready by July 5.
+northwind_supply,Customer,2026-06-02,Cold email from their procurement team. They're looking for a vendor management solution and found our platform.
+northwind_supply,Customer,2026-06-10,Discovery call. They manage 200+ suppliers across 3 countries and need multi-currency support.
+northwind_supply,Customer,2026-06-20,Product demo to their VP of Operations. Positive response — they especially liked the Entropy-based alert system.
+northwind_supply,Customer,2026-06-28,They sent a list of integration requirements. Promised to evaluate and respond with a proposal timeline by July 5.

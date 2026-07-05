@@ -131,6 +131,10 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ entity_id: id, query })
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
     return res.json() as Promise<{ answer: string, search_mode: string }>;
   },
   importCsv: async (file: File) => {
@@ -152,6 +156,10 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw { status: res.status, ...body };
+    }
     return res.json() as Promise<IngestResponse>;
   },
   getConflicts: async () => {

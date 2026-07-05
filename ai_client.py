@@ -23,14 +23,68 @@ Cooldown logic:
 """
 
 import os
+import sys
+import io
 import time
 import logging
 import threading
+import contextlib
 from typing import Optional
+
+# ─── Global stderr filter for Gemini SDK noise ────────────────────────
+# The Gemini SDK prints "Cannot read image.png" directly to stderr
+# through a compiled extension, bypassing both logging and warnings.
+# We intercept stderr at the OS level to suppress it.
+class _StderrFilter(io.TextIOBase):
+    def __init__(self):
+        self._orig = sys.stderr
+    def __init__(self):
+        self._orig = sys.stderr
+    def write(self, s):
+        if "Cannot read" in s and ("does not support image input" in s or ".png" in s or ".jpg" in s or ".jpeg" in s or ".gif" in s or ".bmp" in s or ".webp" in s):
+            return len(s)
+        return self._orig.write(s)
+    def flush(self):
+        self._orig.flush()
+    def isatty(self):
+        return self._orig.isatty()
+    def fileno(self):
+        return self._orig.fileno()
+
+sys.stderr = _StderrFilter()
 
 import google.generativeai as genai
 from groq import Groq
 from dotenv import load_dotenv
+
+# ─── Suppress Gemini SDK's noisy "Cannot read image.png" logs ─────────
+# The SDK also emits through logging.error() and absl.logging — catch those too.
+class _SuppressGeminiImageFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if "Cannot read" in msg:
+            return False
+        if "does not support image" in msg:
+            return False
+        return True
+
+for _name in ("google.generativeai", "google.generativeai.generative_models",
+              "google.generativeai.models", "google.generativeai.files",
+              "absl", "absl.logging"):
+    logging.getLogger(_name).addFilter(_SuppressGeminiImageFilter())
+
+# absl.logging bypasses Python's logging.Filter — patch its error method too
+try:
+    import absl.logging
+    _orig_absl_error = absl.logging.error
+    def _patched_absl_error(msg, *args, **kwargs):
+        s = str(msg)
+        if "Cannot read" in s and (".png" in s or ".jpg" in s or "does not support" in s):
+            return
+        _orig_absl_error(msg, *args, **kwargs)
+    absl.logging.error = _patched_absl_error
+except ImportError:
+    pass
 
 load_dotenv()
 
@@ -189,7 +243,19 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
     for attempt in range(TRANSIENT_MAX_RETRIES + 1):
         try:
             model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            # Suppress stderr at the OS file descriptor level to catch
+            # Gemini C-extension fprintf(stderr, ...) noise (e.g.
+            # "Cannot read image.png"). Python-level redirect_stderr
+            # can't capture C-level writes.
+            old_fd = os.dup(2)
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, 2)
+            os.close(devnull)
+            try:
+                response = model.generate_content(prompt)
+            finally:
+                os.dup2(old_fd, 2)
+                os.close(old_fd)
             text = response.text.strip()
             _clear_cooldown(model_name)   # success → clear any prior cooldown
             logger.info(f"[gemini/{model_name}] OK (attempt {attempt + 1})")
@@ -221,9 +287,10 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
 
             # fatal or transient retries exhausted
             err_str = str(e).lower()
-            if "image" in err_str and ("not support" in err_str or "cannot read" in err_str):
-                logger.debug(f"[gemini/{model_name}] Gemini rejected prompt as image content — suppressing")
-                raise _ImageRejectedError() from e
+            if any(kw in err_str for kw in ["image", "png", "jpg", "jpeg", "gif", "bmp", "webp"]):
+                if any(kw in err_str for kw in ["not support", "cannot read", "invalid", "unsupported", "file"]):
+                    logger.debug(f"[gemini/{model_name}] Gemini rejected prompt as image content — suppressing")
+                    raise _ImageRejectedError() from e
             logger.error(f"[gemini/{model_name}] Failed ({error_type}): {e}")
             raise
 

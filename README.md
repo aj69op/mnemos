@@ -1,176 +1,195 @@
-# Mnemos — Proactive ERP Relationship Intelligence Agent
+# Mnemos
 
-> **"Most ERP AI tools are sandboxed to their own data. Mnemos isn't."**
+**Proactive Relationship Intelligence Agent for ERP Systems**
 
-Mnemos ingests interactions from disconnected business systems (Tally, Zoho CRM, email, WhatsApp notes), builds a unified temporal knowledge graph, and proactively fires alerts *before* relationships break — not after.
-
-**[Live Demo →](https://mnemos-production-4501.up.railway.app)**  &nbsp;|&nbsp;  **[API Docs →](https://mnemos-production-4501.up.railway.app/docs)**  &nbsp;|&nbsp;  **[Health →](https://mnemos-production-4501.up.railway.app/health)**
+[![Live Demo](https://img.shields.io/badge/demo-live-0A3020?style=for-the-badge)](https://mnemos-frontend-gamma.vercel.app)
+[![API Docs](https://img.shields.io/badge/API-docs-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/docs)
+[![Backend Health](https://img.shields.io/badge/health-check-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/health)
+[![License](https://img.shields.io/badge/license-MIT-0A3020?style=for-the-badge)](LICENSE)
 
 ---
 
-## Why this is hard
+Mnemos is an open-source AI agent that ingests raw business interactions — WhatsApp notes, CRM logs, emails, call transcripts — and builds a **living knowledge graph** of your vendor and customer relationships. It tracks every promise, detects sentiment drift, and fires proactive alerts **before** a deal sours or a payment slips.
 
-Every major ERP vendor (Zoho, Tally, SAP) has added AI — but it's siloed. Zoho AI only knows your CRM data. Tally AI only knows your invoices. If a customer promised to pay on Tuesday in a WhatsApp call, then raised a complaint via email, then went silent for 10 days — **no existing tool connects those dots.**
+> **Every ERP vendor has added AI. But Zoho AI only knows Zoho. Tally AI only knows Tally. Mnemos connects the dots across all of them.**
 
-Mnemos does three things none of them do together:
+---
 
-1. **Cross-system ingest** — raw text (emails, call notes, WhatsApp, CSV exports) is classified into a strict ERP schema by Gemini, extracting sentiment, relationship signals, and explicit promises with due dates and owners.
+## The Problem
 
-2. **Temporal knowledge graph** — every interaction is pushed into [cognee](https://github.com/topoteretes/cognee), which builds a graph of entities, relationships, and commitments that can be queried in plain English across all sources simultaneously.
+Your business conversations are scattered across WhatsApp, email, Zoho CRM, Tally invoices, and Slack. When a customer promises payment on a WhatsApp call, then raises a complaint via email, then goes silent — **no existing tool connects those dots.** By the time you realize the relationship is damaged, the customer has already churned.
 
-3. **Continuous commitment decay** — a background agent scores every open promise using an entropy formula. When a payment promise is 8 days overdue with no resolution, you get an alert. You don't have to remember to check.
+## What Mnemos Does Differently
+
+| Capability | Mnemos | Traditional CRM/ERP AI |
+|---|---|---|
+| **Cross-system ingest** | Raw text from any source → structured promises, sentiment, signals | Siloed to one system (Zoho AI, Tally AI, etc.) |
+| **Temporal knowledge graph** | Entity-relationship graph with time-aware querying | Flat tables or siloed databases |
+| **Proactive alerts** | Entropy-driven commitment decay engine fires alerts *before* relationships break | Reactive dashboards you must manually check |
+| **Multi-LLM resilience** | 5-model fallback chain (Gemini → Groq) with per-model cooldowns | Single LLM = single point of failure |
+| **Promise tracking** | Auto-extracts promises with due dates, urgency weights, ownership | No structured promise tracking |
+| **Zero-infra storage** | SQLite with WAL mode — no database server needed | Requires PostgreSQL, Redis, etc. |
+
+---
+
+## Cool Features
+
+### 🧠 Multi-Layer AI Fallback Chain
+No single point of failure. Mnemos cascades through 4 Gemini models → Groq → regex fallback, with per-model cooldown tracking so exhausted models are skipped instantly — not rediscovered by timing out.
+
+```
+gemini-2.5-flash → gemini-2.0-flash → gemini-2.0-flash-lite → gemini-1.5-flash → groq/llama-3.3-70b → regex fallback
+```
+
+### ⏳ Entropy-Powered Alert Engine
+Every promise decays over time. Mnemos computes a **commitment entropy score** using:
+```
+entropy = (days_elapsed / expected_resolution_days) × urgency_weight
+```
+When entropy crosses thresholds, alerts fire automatically. Scores are **frozen at alert time** so you can always audit *why* an alert fired, even after the promise is resolved.
+
+### 🕸️ Temporal Knowledge Graph (Cognee)
+Every interaction becomes a node in a graph with relationships, entities, and commitments. Query across entities in natural language:
+> *"What payment commitments are outstanding across all vendors and how overdue are they?"*
+
+### 🔄 Relationship State Machine
+Entities automatically transition between 5 lifecycle states based on signal history:
+
+`PROSPECT → ENGAGED → TRUSTED` or `→ AT_RISK → CHURNED`
+
+The state machine weighs sentiment, promise resolution rate, escalation frequency, and churn signals — not a single metric.
+
+### 🔍 Cross-Entity Conflict Detection
+When the same entity has conflicting information across sources (e.g., WhatsApp says "payment made" but Tally says "overdue"), Mnemos flags it automatically.
+
+### ⚡ AI-Free CSV Import
+Bulk-import 100+ rows of interaction data **instantly** with keyword-based classification — zero API calls, zero rate limits.
+
+### 🧹 Memory Management
+Low-signal events (neutral type, neutral sentiment, no promises) are auto-pruned to keep the working graph sharp and relevant.
+
+### 🔇 Gemini Noise Suppression
+OS-level stderr redirection silences Gemini SDK's C-extension noise (`fprintf` bypasses Python's `sys.stderr`). Your console stays clean.
+
+---
+
+## Live Demo
+
+**Frontend:** https://mnemos-frontend-gamma.vercel.app
+**Backend:** https://mnemos-production-4501.up.railway.app
+**API Docs:** https://mnemos-production-4501.up.railway.app/docs
+
+The demo is seeded with 20+ entities across all relationship states with 80+ real-world interaction scenarios.
+
+```bash
+# See all entities and their relationship states
+curl https://mnemos-production-4501.up.railway.app/entities
+
+# See proactive alerts sorted by entropy
+curl https://mnemos-production-4501.up.railway.app/alerts
+
+# Natural language query over entity history
+curl -X POST https://mnemos-production-4501.up.railway.app/query \
+  -H "Content-Type: application/json" \
+  -d '{"entity_id": "acme_corp", "query": "What payments are overdue?"}'
+
+# Cross-entity query
+curl -X POST https://mnemos-production-4501.up.railway.app/query-cross-entity \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Which entities are at risk right now?"}'
+```
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Mnemos Backend                           │
-│                                                                 │
-│  POST /ingest ──► Gemini (extract) ──► SQLite ──► cognee graph │
-│                                            │                    │
-│  POST /query  ◄── cognee INSIGHTS ◄────────┤                    │
-│                   (or Gemini fallback)     │                    │
-│                                            │                    │
-│  Background Agent (every 60s)             │                    │
-│    ├── Entropy Engine ◄── open promises ◄──┘                    │
-│    ├── Silence Gap Detector                                     │
-│    └── Sentiment Drift Detector                                 │
-│              │                                                  │
-│              ▼                                                  │
-│         SQLite alerts table (persistent across restarts)        │
-└─────────────────────────────────────────────────────────────────┘
-         │                              │
-         ▼                              ▼
-  Next.js Dashboard              GET /alerts
-  (AlertCard, EntropyBar,        GET /entities
-   TimelineView, QueryBox)       GET /customer/{id}/timeline
+┌────────────────────────────────────────────────────────────────────┐
+│                          Mnemos Backend                            │
+│                                                                    │
+│  ┌──────────┐    ┌──────────────┐    ┌────────┐    ┌───────────┐  │
+│  │   HTTP    │───►│  Classifier  │───►│ SQLite │───►│  Cognee   │  │
+│  │  Routes   │    │ (AI + regex) │    │ (WAL)  │    │   Graph   │  │
+│  └──────────┘    └──────────────┘    └────────┘    └───────────┘  │
+│                        │                              │           │
+│                        ▼                              ▼           │
+│  ┌──────────────────────────────────────────────────────────┐     │
+│  │              Background Agent (every 60s)                 │     │
+│  │  ┌────────────┐  ┌───────────────┐  ┌────────────────┐   │     │
+│  │  │   Entropy  │  │  Silence Gap  │  │  Sentiment     │   │     │
+│  │  │   Engine   │  │  Detector     │  │  Drift Monitor │   │     │
+│  │  └────────────┘  └───────────────┘  └────────────────┘   │     │
+│  │                    │                                      │     │
+│  │                    ▼                                      │     │
+│  │              ┌──────────────┐                             │     │
+│  │              │  Alerts Table│  (persistent, frozen)       │     │
+│  │              └──────────────┘                             │     │
+│  └──────────────────────────────────────────────────────────┘     │
+└────────────────────────────────────────────────────────────────────┘
+           │                              │
+           ▼                              ▼
+    Next.js Dashboard              REST API
+    (Alerts, Timeline,             (GET /alerts, POST /query,
+     Import, Entities,              GET /entities, POST /ingest,
+     Graph, Memify)                 POST /import-csv, etc.)
 ```
-
-### The entropy formula
-
-```
-entropy(promise) = (days_elapsed / expected_resolution_days) × urgency_weight
-
-Alert thresholds:
-  > 0.5  →  medium   (plan a follow-up)
-  > 0.8  →  high     (needs attention now)
-  > 1.2  →  critical (relationship damage likely)
-```
-
-Each promise type has a calibrated `expected_resolution_days` (payment: 3 days, delivery: 5, callback: 1) and `urgency_weight`. Scores are frozen at alert-creation time so you can audit *why* an alert fired, even after the promise resolves.
-
-### AI fallback chain
-
-```
-gemini-2.5-flash
-  │ quota/429 → 60s cooldown, skip
-gemini-2.0-flash
-  │ quota/429 → 60s cooldown, skip
-gemini-2.0-flash-lite
-  │ quota/429 → 60s cooldown, skip
-gemini-1.5-flash
-  │ 5xx/network → exponential backoff (1s, 2s), retry same model
-  │ all exhausted ↓
-groq/llama-3.3-70b-versatile
-  │ all exhausted ↓
-RuntimeError (surfaces to caller with full context)
-```
-
-Per-model cooldowns are in-process state — exhausted models are skipped *immediately* on subsequent calls rather than re-discovering the 429 by timing out. Visible at `/health` under `ai.models_on_cooldown`.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
+| Layer | Technology | Rationale |
 |---|---|---|
-| Backend | FastAPI + Python 3.11 | Async, type-safe, auto-docs |
-| Storage | SQLite + WAL mode | Multi-worker safe, zero infra |
-| Knowledge Graph | cognee (cloud) | Temporal graph + hybrid retrieval |
-| AI | Gemini 2.5/2.0/1.5 + Groq | Free tier cascade, no single point of failure |
-| Frontend | Next.js 14 + TypeScript | Type-safe, fast |
-| Background Jobs | APScheduler | In-process, no Redis needed for MVP |
-| Deployment | Railway + persistent volume | One-command deploy, DB survives redeploys |
+| **Backend** | FastAPI + Python 3.11 | Async, auto-docs, type-safe |
+| **Storage** | SQLite + WAL mode | Zero-infra, multi-worker safe, migrates to Postgres |
+| **Knowledge Graph** | Cognee Cloud | Temporal graph with hybrid retrieval |
+| **AI** | Gemini 2.5/2.0/1.5 + Groq + Regex | 5-tier fallback, no single point of failure |
+| **Frontend** | Next.js 14 + TypeScript + Tailwind | Modern, fast, type-safe |
+| **Background Jobs** | APScheduler | In-process, no Redis needed |
+| **Deployment** | Railway + Vercel | One-command backend + edge frontend |
 
 ---
 
-## Live Demo
-
-The demo is seeded with 6 fictional Indian SME entities across different relationship states:
-
-| Entity | State | Story |
-|---|---|---|
-| `rajesh_textiles` | TRUSTED | ₹1.2L payment overdue by 18 days — high entropy alert |
-| `priya_pharma` | AT_RISK | 3 consecutive negative interactions — sentiment drift alert |
-| `suresh_logistics` | ENGAGED | Active pilot, deal progressing |
-| `meenakshi_exports` | CHURNED | Went silent 45 days ago after discount expired |
-| `vikram_tech_solutions` | PROSPECT | Proposal sent 12 days ago, no response |
-| `ananya_foods_pvt` | TRUSTED | Healthy — upsell quote open, renewal confirmed |
-
-**Read endpoints are open. Write endpoints are disabled in demo mode.**
-
-Try these:
-```bash
-# See all entities and their relationship states
-curl https://mnemos-production-4501.up.railway.app/entities
-
-# See active alerts sorted by entropy
-curl https://mnemos-production-4501.up.railway.app/alerts
-
-# Natural language query over Rajesh's history
-curl -X POST https://mnemos-production-4501.up.railway.app/query \
-  -H "Content-Type: application/json" \
-  -d '{"entity_id": "rajesh_textiles", "query": "What payment commitments are outstanding and how overdue are they?"}'
-
-# Full interaction timeline
-curl https://mnemos-production-4501.up.railway.app/customer/rajesh_textiles/timeline
-```
-
----
-
-## Local Setup
+## Quick Start
 
 ```bash
-# 1. Clone and install
+# 1. Clone
 git clone https://github.com/aj69op/mnemos
 cd mnemos
+
+# 2. Backend
 pip install -r requirements.txt
-
-# 2. Set environment variables
 cp .env.example .env
-# Add: GEMINI_API_KEY, GROQ_API_KEY, COGNEE_API_KEY, COGNEE_TENANT_ID
-
-# 3. Seed demo data
-python seed_demo.py
-
-# 4. Start backend
+# Edit .env: add your GEMINI_API_KEY, GROQ_API_KEY, COGNEE_API_KEY, COGNEE_TENANT_ID
 uvicorn main:app --reload
 
-# 5. Start frontend
-cd frontend && npm install && npm run dev
+# 3. Frontend
+cd frontend
+npm install
+npm run dev
 ```
 
 Backend: `http://localhost:8000`  
-Frontend: `http://localhost:3000`  
-API Docs: `http://localhost:8000/docs`
+Frontend: `http://localhost:3000`
 
 ---
 
-## Key Engineering Decisions
+## API Reference
 
-**Why SQLite over PostgreSQL?**  
-WAL mode + `busy_timeout=5000ms` handles multi-worker concurrent reads safely and serializes writes without corruption. For a single-instance Railway deployment, this is zero-infra and zero-cost. The schema is designed to migrate to Postgres with minimal changes when needed.
-
-**Why freeze entropy scores at alert time?**  
-If scores were computed on-read, you couldn't audit "why did this alert fire?" after the promise resolves. Frozen scores also mean the `occurred_at` vs `ingested_at` column split matters — `occurred_at` is the source timestamp (validated at ingest with a hard 422 on bad dates), `ingested_at` is when SQLite saw the row. Entropy is computed from `occurred_at`.
-
-**Why per-model cooldowns instead of a global retry?**  
-Gemini quota limits are per-model, not global. `gemini-2.0-flash` and `gemini-2.0-flash-lite` have separate quota buckets. A global "Gemini is down" flag would unnecessarily skip available models. The cooldown dict tracks exhaustion per-model so each request uses the best available option.
-
-**Why no Redis for the background agent?**  
-The agent writes to SQLite tables (`alerts`, `state_changes`, `agent_state`). For a single-instance deployment, this is correct. When/if horizontal scaling is needed, the migration path is: replace APScheduler with a Celery worker + Redis broker, keep the SQLite reads, move writes to Postgres. No application logic changes.
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/ingest` | Ingest a raw interaction note |
+| `POST` | `/import-csv` | Bulk import CSV (AI-free, instant) |
+| `POST` | `/query` | Natural language query over an entity |
+| `POST` | `/query-cross-entity` | Query across multiple entities |
+| `GET` | `/entities` | List all entities + states |
+| `GET` | `/alerts` | Active proactive alerts |
+| `GET` | `/customer/{id}/timeline` | Full interaction timeline |
+| `GET` | `/customer/{id}/commitments` | Open promises + entropy scores |
+| `POST` | `/draft-followup` | AI-drafted follow-up message |
+| `GET` | `/health` | Service health + AI model status |
+| `POST` | `/memify` | Prune low-signal memories |
+| `POST` | `/forget` | Soft-delete an entity |
 
 ---
 
@@ -178,38 +197,72 @@ The agent writes to SQLite tables (`alerts`, `state_changes`, `agent_state`). Fo
 
 ```
 mnemos/
-├── main.py              # FastAPI routes + lifespan
-├── agent_loop.py        # APScheduler background agent
-├── entropy_engine.py    # Commitment decay formula + alert generation
-├── erp_schema.py        # Data models + Gemini extraction prompts
-├── storage.py           # SQLite CRUD (events, alerts, state)
-├── db.py                # Connection factory, WAL config, schema
-├── ai_client.py         # Multi-provider fallback chain with cooldowns
-├── demo_gate.py         # Read-only demo mode middleware
+├── main.py              # FastAPI routes (12 endpoints)
+├── ai_client.py         # Multi-LLM fallback with cooldowns
+├── erp_schema.py        # Data models + extraction prompts
+├── entropy_engine.py    # Commitment decay + alert generation
+├── agent_loop.py        # Background proactive agent
+├── conflict_detector.py # Cross-source conflict detection
+├── storage.py           # SQLite CRUD layer
+├── db.py                # Connection factory + schema
+├── fast_import_csv.py   # AI-free bulk CSV import
+├── demo_gate.py         # Read-only demo mode
 ├── seed_demo.py         # Demo data seeder
-└── frontend/            # Next.js dashboard
-    └── src/
-        ├── components/
-        │   ├── AlertCard.tsx      # SLA breach alert UI
-        │   ├── EntropyBar.tsx     # Commitment decay visualizer
-        │   ├── QueryBox.tsx       # Natural language query input
-        │   ├── StateBadge.tsx     # Relationship state badge
-        │   └── TimelineView.tsx   # Chronological interaction view
-        └── app/
-            ├── page.tsx                    # Main dashboard
-            ├── customer/[id]/page.tsx      # Entity profile
-            └── import/page.tsx             # CSV import UI
+├── skills/              # Cognee skill integrations
+├── frontend/
+│   ├── src/app/         # Dashboard pages
+│   │   ├── dashboard/page.tsx              # Main dashboard
+│   │   ├── dashboard/customer/[id]/page.tsx # Entity profile
+│   │   ├── dashboard/entities/page.tsx     # Entity list
+│   │   ├── dashboard/import/page.tsx       # CSV import UI
+│   │   ├── dashboard/graph/page.tsx        # Knowledge graph
+│   │   └── dashboard/memify/page.tsx       # Memory management
+│   └── src/lib/
+│       └── api.ts      # API client (proxied via /api/* rewrites)
 ```
 
 ---
 
-## What's Next
+## Engineering Decisions
 
-- [ ] Real CDC bridge — Debezium connectors for live Tally/Zoho ingest
-- [ ] Vector similarity for the Gemini fallback (replace sliding window with FAISS)
-- [ ] Multi-tenant auth (currently single-org)
-- [ ] Webhook notifications for critical alerts (Slack / WhatsApp Business API)
+**SQLite over PostgreSQL?**  
+WAL mode + `busy_timeout=5000ms` handles concurrent reads safely and serializes writes without corruption. For single-instance deployments, this is zero-infra and zero-cost. The schema is designed for a straight-forward Postgres migration when needed.
+
+**Frozen entropy scores?**  
+Scores are computed at alert-creation time, not on-read. This means you can audit *why* a critical alert fired weeks later, even after the promise was resolved. `occurred_at` (source timestamp) drives entropy; `ingested_at` (wall clock) drives ordering.
+
+**Per-model cooldowns?**  
+Gemini's free-tier quota is per-model, not global. A global "Gemini is down" flag would skip `gemini-2.0-flash-lite` even when only `gemini-2.5-flash` is exhausted. Per-model tracking uses every available token.
+
+**No Redis?**  
+The background agent writes to SQLite tables directly. For horizontal scaling, replace APScheduler with Celery + Redis broker, keep reads on SQLite, move writes to Postgres. No application logic changes.
 
 ---
 
-*Built by Arkajit Chowdhury · [LinkedIn](https://www.linkedin.com/in/arkajit-chowdhury-61427131b/)*
+## Roadmap
+
+- [x] Cross-system ingest (any text → structured ERP events)
+- [x] Temporal knowledge graph with natural language query
+- [x] Entropy-driven proactive alerts
+- [x] Multi-LLM fallback chain with cooldowns
+- [x] Bulk CSV import (AI-free)
+- [x] Relationship state machine
+- [x] Conflict detection
+- [ ] CDC connectors for live Tally / Zoho ingest
+- [ ] Slack / WhatsApp Business API webhook notifications
+- [ ] Multi-tenant auth
+- [ ] Vector similarity for LLM fallback (replace sliding window with FAISS)
+
+---
+
+## Team
+
+Built by **[Arkajit Chowdhury](https://www.linkedin.com/in/arkajit-chowdhury-61427131b/)** — product engineer specializing in AI-powered developer tools and ERP intelligence systems.
+
+---
+
+<p align="center">
+  <a href="https://mnemos-frontend-gamma.vercel.app">Live Demo</a> ·
+  <a href="https://github.com/aj69op/mnemos">GitHub</a> ·
+  <a href="https://mnemos-production-4501.up.railway.app/docs">API Docs</a>
+</p>

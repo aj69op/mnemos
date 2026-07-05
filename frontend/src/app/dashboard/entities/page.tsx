@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { Search, Bell, ChevronDown, Filter, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -92,7 +93,7 @@ export default function EntitiesPage() {
             </div>
           </div>
 
-          <button className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm ml-2">
+          <button onClick={() => window.location.href = "/dashboard"} className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm ml-2" title="View Dashboard">
             <Bell className="w-[18px] h-[18px] text-gray-600" />
             <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white box-content" />
           </button>
@@ -118,9 +119,9 @@ export default function EntitiesPage() {
           })}
         </div>
         
-        <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+        <button onClick={() => setActiveState(activeState === "All" ? "AT_RISK" : "All")} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors" title="Toggle show at-risk only">
           <Filter className="w-4 h-4 text-gray-400" />
-          <span>Filters</span>
+          <span>At-Risk Only</span>
         </button>
       </div>
 
@@ -206,12 +207,12 @@ export default function EntitiesPage() {
                     </td>
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-4">
-                        <a 
+                        <Link 
                           href={`/dashboard/customer/${e.entity_id}`}
                           className="bg-white border border-gray-200 rounded-xl px-4 py-1.5 text-[12px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
                         >
                           View Timeline
-                        </a>
+                        </Link>
                         <button className="text-gray-400 hover:text-gray-600 transition-colors">
                           <MoreVertical className="w-4 h-4" />
                         </button>
@@ -236,23 +237,23 @@ export default function EntitiesPage() {
             Showing 1 to {Math.min(6, filteredAndSortedEntities.length)} of {entities.length || 45} entities
           </span>
           <div className="flex items-center gap-1">
-            <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
+            <button onClick={() => setActiveState("All")} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors" title="Show all">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button className="w-8 h-8 rounded-lg bg-[#0A3020] text-white font-bold text-[13px] flex items-center justify-center shadow-sm">
+            <button onClick={() => setActiveState("All")} className={`w-8 h-8 rounded-lg ${activeState === "All" ? "bg-[#0A3020] text-white" : "hover:bg-gray-50 text-gray-600"} font-bold text-[13px] flex items-center justify-center shadow-sm`} title="All entities">
               1
             </button>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-600 font-medium text-[13px] flex items-center justify-center transition-colors">
+            <button onClick={() => setActiveState("ENGAGED")} className={`w-8 h-8 rounded-lg ${activeState === "ENGAGED" ? "bg-[#0A3020] text-white" : "hover:bg-gray-50 text-gray-600"} font-medium text-[13px] flex items-center justify-center transition-colors`} title="Engaged only">
               2
             </button>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-600 font-medium text-[13px] flex items-center justify-center transition-colors">
+            <button onClick={() => setActiveState("AT_RISK")} className={`w-8 h-8 rounded-lg ${activeState === "AT_RISK" ? "bg-[#0A3020] text-white" : "hover:bg-gray-50 text-gray-600"} font-medium text-[13px] flex items-center justify-center transition-colors`} title="At Risk only">
               3
             </button>
             <span className="w-8 text-center text-gray-400 text-[13px]">...</span>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-600 font-medium text-[13px] flex items-center justify-center transition-colors">
+            <button onClick={() => setActiveState("CHURNED")} className={`w-8 h-8 rounded-lg ${activeState === "CHURNED" ? "bg-[#0A3020] text-white" : "hover:bg-gray-50 text-gray-600"} font-medium text-[13px] flex items-center justify-center transition-colors`} title="Churned only">
               8
             </button>
-            <button className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors">
+            <button onClick={() => setActiveState("All")} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors" title="Show all">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

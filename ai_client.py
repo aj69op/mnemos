@@ -31,13 +31,14 @@ import threading
 import contextlib
 from typing import Optional
 
-# ─── Global stderr filter for Gemini SDK noise ────────────────────────
-# The Gemini SDK prints "Cannot read image.png" directly to stderr
-# through a compiled extension, bypassing both logging and warnings.
-# We intercept stderr at the OS level to suppress it.
+# ─── Suppress Gemini C-extension stderr noise ─────────────────────────
+# The Gemini SDK's compiled extension prints "Cannot read image.png"
+# directly to stderr via C-level fprintf and/or the Win32 API
+# (GetStdHandle/WriteConsole), bypassing both Python's sys.stderr
+# and file descriptor 2. We intercept at every layer.
+
+# Layer 1: Python-level sys.stderr filter
 class _StderrFilter(io.TextIOBase):
-    def __init__(self):
-        self._orig = sys.stderr
     def __init__(self):
         self._orig = sys.stderr
     def write(self, s):
@@ -53,7 +54,33 @@ class _StderrFilter(io.TextIOBase):
 
 sys.stderr = _StderrFilter()
 
+# Layer 2: Win32 handle-level redirect around genai import (C-ext
+# captures the stderr handle at module-load time). Restored immediately
+# after so the rest of the process sees normal stderr.
+_WIN32_STD_ERROR_HANDLE = -12
+_stderr_redirect_active = False
+try:
+    import ctypes
+    _kernel32 = ctypes.windll.kernel32
+    _nul_handle = _kernel32.CreateFileW(
+        "nul", 0x40000000, 0x00000003, None, 3, 0x00000080, None
+    )
+    if _nul_handle and _nul_handle != -1:
+        _orig_stderr_handle = _kernel32.GetStdHandle(_WIN32_STD_ERROR_HANDLE)
+        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, _nul_handle)
+        _stderr_redirect_active = True
+except Exception:
+    pass
+
 import google.generativeai as genai
+
+# Restore Windows stderr handle now that genai has loaded
+if _stderr_redirect_active:
+    try:
+        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, _orig_stderr_handle)
+        _kernel32.CloseHandle(_nul_handle)
+    except Exception:
+        pass
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -229,6 +256,27 @@ def _classify_error(e: Exception) -> str:
     return "fatal"
 
 
+# ─── Temporary Win32 stderr redirect (belt over suspenders) ────────────────────
+
+@contextlib.contextmanager
+def _suppress_stderr_win32():
+    """Temporarily redirect the Win32 STD_ERROR_HANDLE to NUL."""
+    if not _stderr_redirect_active:
+        yield
+        return
+    try:
+        nul = _kernel32.CreateFileW(
+            "nul", 0x40000000, 0x00000003, None, 3, 0x00000080, None
+        )
+        old = _kernel32.GetStdHandle(_WIN32_STD_ERROR_HANDLE)
+        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, nul)
+        yield
+        _kernel32.SetStdHandle(_WIN32_STD_ERROR_HANDLE, old)
+        _kernel32.CloseHandle(nul)
+    except Exception:
+        yield
+
+
 # ─── Single Gemini model call with transient retry ────────────────────────────
 
 def _call_gemini_model(model_name: str, prompt: str) -> str:
@@ -243,16 +291,17 @@ def _call_gemini_model(model_name: str, prompt: str) -> str:
     for attempt in range(TRANSIENT_MAX_RETRIES + 1):
         try:
             model = genai.GenerativeModel(model_name)
-            # Suppress stderr at the OS file descriptor level to catch
-            # Gemini C-extension fprintf(stderr, ...) noise (e.g.
-            # "Cannot read image.png"). Python-level redirect_stderr
-            # can't capture C-level writes.
+            # Suppress stderr at every layer to catch Gemini C-extension
+            # noise (e.g. "Cannot read image.png" via C-level fprintf or
+            # Win32 WriteConsole). Python-level redirect_stderr can't
+            # capture either of those.
             old_fd = os.dup(2)
             devnull = os.open(os.devnull, os.O_WRONLY)
             os.dup2(devnull, 2)
             os.close(devnull)
             try:
-                response = model.generate_content(prompt)
+                with _suppress_stderr_win32():
+                    response = model.generate_content(prompt)
             finally:
                 os.dup2(old_fd, 2)
                 os.close(old_fd)

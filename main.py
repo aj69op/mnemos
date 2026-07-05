@@ -203,7 +203,7 @@ async def ingest_event(req: IngestRequest, _=Depends(require_write_access)):
                 "data": req.text,
                 "dataset_name": req.entity_id,
             })
-            await _cognee_request("POST", "/cognify")
+            await _cognee_request("POST", "/cognify", json={"datasets": [req.entity_id]})
             cognee_status = "indexed"
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 409:

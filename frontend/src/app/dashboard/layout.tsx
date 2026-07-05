@@ -43,8 +43,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col">
           <div className="p-6 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[14px] bg-[#0A3020] flex justify-center items-center overflow-hidden">
-                <Image src="/logo_transparent.png" alt="Mnemos" width={28} height={28} className="object-contain" />
+              <div className="w-14 h-14 rounded-[14px] bg-black flex justify-center items-center overflow-hidden p-0">
+                <Image src="/logo_transparent.png" alt="Mnemos" width={64} height={64} className="object-cover min-w-[64px] min-h-[64px]" />
               </div>
               <div className="leading-tight flex flex-col">
                 <span className="font-bold text-gray-900 text-[15px]">

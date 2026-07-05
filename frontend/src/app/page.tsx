@@ -54,8 +54,8 @@ export default function LandingPage() {
             }`}
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-xl bg-white/10 border-white/10 border flex justify-center items-center transition-transform duration-500 hover:scale-110 hover:rotate-6 overflow-hidden">
-                <Image src="/logo_transparent.png" alt="Mnemos" width={24} height={24} className="object-contain brightness-0 invert" />
+              <div className="w-16 h-16 shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-md rounded-xl bg-black/40 border-white/10 border flex justify-center items-center transition-transform duration-500 hover:scale-110 hover:rotate-6 overflow-hidden p-0">
+                <Image src="/logo_transparent.png" alt="Mnemos" width={80} height={80} className="object-cover min-w-[80px] min-h-[80px]" />
               </div>
               <div className="flex flex-col">
                 <div className="drop-shadow-[0_0_18px_rgba(255,255,255,0.12)] font-bold text-white text-[28px] leading-8 tracking-[-0.64px]">

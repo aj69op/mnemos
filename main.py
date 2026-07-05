@@ -331,15 +331,15 @@ async def _query_entity_impl(req: QueryRequest):
             "entity connections, and any triples that reveal how entities relate. "
             "Return a concise natural-language answer emphasizing relationship insights."
         )
-        # ── Phase 1: Try all 3 Cognee search types in parallel (5s timeout) ──
+        # ── Phase 1: Try all 3 Cognee search types in parallel (15s timeout) ──
         cognee_tasks = [
             asyncio.create_task(_search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
-                                               timeout=5, system_prompt=RELATIONSHIP_PROMPT)),
-            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=5)),
-            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=5)),
+                                               timeout=15, system_prompt=RELATIONSHIP_PROMPT)),
+            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=15)),
+            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=15)),
         ]
         try:
-            done, pending = await asyncio.wait(cognee_tasks, timeout=6,
+            done, pending = await asyncio.wait(cognee_tasks, timeout=16,
                                                 return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 try:
@@ -454,7 +454,7 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
         async def _try_search(qtype, extra):
             body = {"query": req.query, "query_type": qtype, "datasets": target_ids}
             body.update(extra)
-            return await _cognee_request("POST", "/search", json=body, timeout=8)
+            return await _cognee_request("POST", "/search", json=body, timeout=15)
 
         cross_tasks = [
             asyncio.create_task(_try_search("GRAPH_COMPLETION", {"system_prompt": RELATIONSHIP_PROMPT})),
@@ -462,7 +462,7 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
             asyncio.create_task(_try_search("CHUNKS", {})),
         ]
         try:
-            done, pending = await asyncio.wait(cross_tasks, timeout=10,
+            done, pending = await asyncio.wait(cross_tasks, timeout=18,
                                                 return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 try:

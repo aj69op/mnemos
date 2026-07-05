@@ -786,18 +786,24 @@ async def run_memify(_=Depends(require_write_access)):
         per_entity[entity_id] = per_entity.get(entity_id, 0) + 1
 
     cognee_enriched, cognee_failed = [], []
-    if COGNEE_AVAILABLE:
-        for entity_id in per_entity:
+    if COGNEE_AVAILABLE and per_entity:
+        async def _cognify_one(eid):
             try:
                 await _cognee_request(
                     "POST", "/cognify",
-                    json={"datasets": [entity_id], "run_in_background": False},
+                    json={"datasets": [eid], "run_in_background": False},
                     timeout=120.0,
                 )
-                cognee_enriched.append(entity_id)
+                return eid, True
             except Exception as e:
-                cognee_failed.append(entity_id)
-                print(f"[mnemos] Cognee cognify failed for {entity_id}: {e}")
+                print(f"[mnemos] Cognee cognify failed for {eid}: {e}")
+                return eid, False
+        results = await asyncio.gather(*[_cognify_one(eid) for eid in per_entity])
+        for eid, ok in results:
+            if ok:
+                cognee_enriched.append(eid)
+            else:
+                cognee_failed.append(eid)
 
     return {
         "nodes_before": nodes_before,

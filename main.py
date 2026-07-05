@@ -331,15 +331,15 @@ async def _query_entity_impl(req: QueryRequest):
             "entity connections, and any triples that reveal how entities relate. "
             "Return a concise natural-language answer emphasizing relationship insights."
         )
-        # ── Phase 1: Try all 3 Cognee search types in parallel (25s timeout) ──
+        # ── Phase 1: Try all 3 Cognee search types in parallel (6s timeout) ──
         cognee_tasks = [
             asyncio.create_task(_search_cognee("GRAPH_COMPLETION", req.entity_id, req.query,
-                                               timeout=25, system_prompt=RELATIONSHIP_PROMPT)),
-            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=25)),
-            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=25)),
+                                               timeout=6, system_prompt=RELATIONSHIP_PROMPT)),
+            asyncio.create_task(_search_cognee("INSIGHTS", req.entity_id, req.query, timeout=6)),
+            asyncio.create_task(_search_cognee("CHUNKS", req.entity_id, req.query, timeout=6)),
         ]
         try:
-            done, pending = await asyncio.wait(cognee_tasks, timeout=28,
+            done, pending = await asyncio.wait(cognee_tasks, timeout=8,
                                                 return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 try:
@@ -454,7 +454,7 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
         async def _try_search(qtype, extra):
             body = {"query": req.query, "query_type": qtype, "datasets": target_ids}
             body.update(extra)
-            return await _cognee_request("POST", "/search", json=body, timeout=25)
+            return await _cognee_request("POST", "/search", json=body, timeout=6)
 
         cross_tasks = [
             asyncio.create_task(_try_search("GRAPH_COMPLETION", {"system_prompt": RELATIONSHIP_PROMPT})),
@@ -462,7 +462,7 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
             asyncio.create_task(_try_search("CHUNKS", {})),
         ]
         try:
-            done, pending = await asyncio.wait(cross_tasks, timeout=28,
+            done, pending = await asyncio.wait(cross_tasks, timeout=8,
                                                 return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 try:
@@ -497,14 +497,44 @@ async def query_cross_entity(req: CrossEntityQueryRequest):
     total_promises = sum(e.get("open_promises", 0) for e in all_entities_data)
     critical_alerts = sum(1 for a in all_alerts if getattr(a, "severity", "") == "critical") if all_alerts else 0
 
+    # Build entity-specific detail lines based on query keywords
+    ql = req.query.lower()
+    entity_lines = []
+    for e in all_entities_data:
+        eid = e["entity_id"]
+        state = e.get("state", "")
+        promises = e.get("open_promises", 0)
+        match_keywords = ["delivery", "vendor", "supplier", "payment", "risk", "issue", "problem", "all", "each", "list", "show"]
+        if any(k in ql for k in match_keywords):
+            if "vendor" in ql or "supplier" in ql:
+                if e.get("entity_type", "").lower() == "vendor":
+                    status_icon = "🔴" if state == "AT_RISK" else "🟢" if state == "ENGAGED" else "⚪"
+                    entity_lines.append(f"  {status_icon} **{eid}** — {state} ({promises} open promises)")
+            elif "delivery" in ql:
+                if promises > 0:
+                    entity_lines.append(f"  **{eid}** — {state}, {promises} pending delivery/payment promises")
+            elif "risk" in ql or "issue" in ql or "problem" in ql:
+                if state == "AT_RISK":
+                    entity_lines.append(f"  🔴 **{eid}** — AT RISK ({promises} open promises)")
+            elif "payment" in ql:
+                if promises > 0:
+                    entity_lines.append(f"  **{eid}** — {promises} payment-related promises ({state})")
+        if ql in ["all", "list", "show"]:
+            entity_lines.append(f"  **{eid}** — {state} ({promises} promises)")
+
+    if not entity_lines:
+        entity_lines.append("  (No matching entities found for your query)")
+
+    entity_section = "\n".join(entity_lines[:15])
+    if len(entity_lines) > 15:
+        entity_section += f"\n  ... and {len(entity_lines)-15} more"
+
     answer = (
-        f"**System Overview (Cognee unavailable — showing local data)**\n\n"
-        f"I found **{len(all_entities_data)} entities** across **{engaged_count} engaged**, "
-        f"**{at_risk_count} at risk**, and **{churned_count} churned**.\n\n"
-        f"**{total_promises} open promises** tracked.\n"
-        f"**{len(all_alerts)} active alerts** (**: {critical_alerts} critical**).\n\n"
-        f"Your query could not be answered from Cognee's knowledge graph. "
-        f"Try rephrasing, or ask about specific entities with /query."
+        f"**Local Data Overview (Cognee unavailable)**\n\n"
+        f"I found **{len(all_entities_data)} entities** "
+        f"({engaged_count} engaged, {at_risk_count} at risk, {churned_count} churned).\n\n"
+        f"**Matching entities:**\n{entity_section}\n\n"
+        f"**{total_promises} open promises** · **{len(all_alerts)} alerts** ({critical_alerts} critical)"
     )
 
     return CrossEntityQueryResponse(

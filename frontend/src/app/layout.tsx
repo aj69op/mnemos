@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Mnemos ERP Intelligence",
   description: "Relationship entropy monitoring and promise tracking dashboard",
   icons: {
-    icon: "/logo_transparent.png",
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "64x64" }],
   },
 };
 

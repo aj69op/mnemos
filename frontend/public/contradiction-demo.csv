@@ -1,0 +1,23 @@
+entity_id,entity_type,text,date
+acme_corp,Customer,Payment of INR 100000 confirmed via WhatsApp. Client happy with the progress.,2026-06-10
+acme_corp,Customer,Invoice shows payment of INR 150000 received via Email. Team followed up on discrepancy.,2026-06-20
+acme_corp,Customer,Delivery promised by 2026-07-15 as per meeting notes with client.,2026-06-12
+acme_corp,Customer,Vendor emailed updated delivery date is 2026-08-01 due to supply chain.,2026-06-22
+acme_corp,Customer,Payment status marked as completed via CRM call notes.,2026-06-08
+acme_corp,Customer,Payment status shows pending in latest Email from accounts.,2026-06-25
+globex_inc,Vendor,Delivery committed for 2026-06-30 via WhatsApp.,2026-06-05
+globex_inc,Vendor,Supplier emailed stating delivery delayed to 2026-07-15.,2026-06-18
+globex_inc,Vendor,Payment of INR 50000 released via Email confirmation.,2026-06-10
+globex_inc,Vendor,Payment of INR 75000 processed as per meeting decision.,2026-06-20
+nova_dynamics,Partner,Delivery promised by 2026-07-01 in Linkedin message.,2026-06-01
+nova_dynamics,Partner,Partner emailed stating delivery will be 2026-07-20.,2026-06-15
+nova_dynamics,Partner,Commitment to pay INR 200000 made via WhatsApp.,2026-06-05
+nova_dynamics,Partner,Actual payment amount is INR 180000 confirmed via Email.,2026-06-19
+zenith_corp,Customer,Delivery by 2026-07-10 confirmed via call with client.,2026-06-02
+zenith_corp,Customer,Client meeting rescheduled delivery to 2026-08-05.,2026-06-16
+zenith_corp,Customer,Payment of INR 300000 processed via Email.,2026-06-08
+zenith_corp,Customer,Payment records show INR 280000 in CRM call notes.,2026-06-21
+pinnacle_ltd,Vendor,Payment of INR 75000 released via Email.,2026-06-03
+pinnacle_ltd,Vendor,Payment of INR 90000 confirmed in meeting minutes.,2026-06-17
+pinnacle_ltd,Vendor,Delivery due by 2026-07-05 per WhatsApp discussion.,2026-06-07
+pinnacle_ltd,Vendor,Delivery rescheduled to 2026-07-25 as per Email from logistics.,2026-06-23

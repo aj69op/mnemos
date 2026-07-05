@@ -17,6 +17,7 @@ from erp_schema import (
     compute_relationship_state,
 )
 import storage
+from conflict_detector import check_for_conflict
 
 PROMISE_PAT = re.compile(
     r'(?:promised?\s+(?:to|that\s+they\s+would|they\s+will)\s+)?'
@@ -243,7 +244,15 @@ def fast_import_csv(filepath: str) -> dict:
 
         try:
             event = classify_without_ai(text_val, entity_id, entity_type, date_str)
-            storage.save_event(event)
+            event_id = storage.save_event(event)
+            if event.attribute_type and event.attribute_value:
+                check_for_conflict(
+                    entity_id,
+                    event.attribute_type,
+                    event.attribute_value,
+                    event.attribute_source or "interaction note",
+                    event_id,
+                )
             results.append({
                 "row": row_num, "status": "ingested",
                 "entity_id": entity_id, "event_type": event.event_type,

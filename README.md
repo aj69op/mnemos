@@ -6,7 +6,7 @@
 [![API Docs](https://img.shields.io/badge/API-docs-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/docs)
 [![Backend Health](https://img.shields.io/badge/health-check-0A3020?style=for-the-badge)](https://mnemos-production-4501.up.railway.app/health)
 [![License](https://img.shields.io/badge/license-MIT-0A3020?style=for-the-badge)](LICENSE)
-[![Demo Video](https://img.shields.io/badge/demo-video-0A3020?style=for-the-badge)](https://youtu.be/YOUR_VIDEO_ID)
+[![Demo Video](https://img.shields.io/badge/demo-video-0A3020?style=for-the-badge)](https://youtu.be/VDJvDGWKYG0)
 
 ---
 

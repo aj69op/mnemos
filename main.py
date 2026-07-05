@@ -865,6 +865,26 @@ async def admin_clear_data():
     conn.close()
     return {"status": "cleared", "tables": tables}
 
+@app.get("/debug/check-attributes")
+async def debug_check_attributes():
+    """Check attribute extraction in stored events."""
+    from db import get_connection
+    import json
+    conn = get_connection()
+    rows = conn.execute("SELECT id, entity_id, payload FROM events WHERE entity_id = ? ORDER BY id", ("acme_corp",)).fetchall()
+    results = []
+    for r in rows:
+        p = json.loads(r["payload"])
+        results.append({
+            "id": r["id"], "entity_id": r["entity_id"],
+            "attribute_type": p.get("attribute_type"),
+            "attribute_value": p.get("attribute_value"),
+            "attribute_source": p.get("attribute_source"),
+            "text": p.get("raw_text", "")[:80],
+        })
+    conn.close()
+    return {"events": results}
+
 @app.get("/health")
 async def health():
     return {

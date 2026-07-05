@@ -237,8 +237,8 @@ export default function DashboardPage() {
 
           {/* At-risk Entities & Filters */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3 flex-wrap">
-              {atRisk.map((entity, idx) => (
+            <div className="flex items-center gap-3 overflow-hidden">
+              {atRisk.slice(0, 4).map((entity, idx) => (
                 <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
                   <Building2 className="w-[14px] h-[14px] text-gray-400" />
                   <span>{entity.entity_id}</span>

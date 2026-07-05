@@ -81,7 +81,7 @@ export default function CustomerProfile() {
 
   return (
     <div className="flex flex-col h-full bg-white text-[#111111]">
-      <div className="border-b border-gray-200 px-8 pt-8 pb-6">
+      <div className="border-b border-gray-200 px-4 md:px-6 lg:px-8 pt-8 pb-6">
         <Link href="/dashboard/entities" className="flex items-center gap-2 text-gray-500 hover:text-black mb-4 transition-colors">
           <ChevronLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Back to Entities</span>
@@ -108,7 +108,7 @@ export default function CustomerProfile() {
         </div>
       </div>
       
-      <div className="px-8 py-6 space-y-10">
+      <div className="px-4 md:px-6 lg:px-8 py-6 space-y-10">
         
         {/* Open Commitments */}
         <section>

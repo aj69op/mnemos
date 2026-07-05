@@ -54,55 +54,52 @@ export default function EntitiesPage() {
   ];
 
   return (
-    <div className="p-10 h-full min-h-full bg-[#FAFAFA] font-sans flex flex-col">
+    <div className="p-4 md:p-6 lg:p-10 h-full min-h-full bg-[#FAFAFA] font-sans flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
         <div>
-          <h1 className="font-bold text-gray-900 text-[28px] tracking-tight">Entities</h1>
-          <p className="text-gray-500 text-[14px] mt-1 font-medium">All tracked customers and vendors</p>
+          <h1 className="font-bold text-gray-900 text-[22px] md:text-[28px] tracking-tight">Entities</h1>
+          <p className="text-gray-500 text-[13px] md:text-[14px] mt-1 font-medium">All tracked customers and vendors</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative flex items-center">
-            <Search className="w-4 h-4 absolute left-3.5 text-gray-400" />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex items-center flex-1 sm:flex-initial">
+            <Search className="w-4 h-4 absolute left-3 text-gray-400" />
             <input 
               type="text" 
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by entity ID or name..." 
-              className="pl-10 pr-12 py-2 bg-white border border-gray-200 rounded-xl text-[13px] w-[280px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400 shadow-sm font-medium"
+              placeholder="Search entities..." 
+              className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-[13px] w-full sm:w-[200px] lg:w-[280px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-gray-400 shadow-sm font-medium"
             />
-            <div className="absolute right-3 flex items-center gap-1 text-[11px] text-gray-400 font-bold border border-gray-100 bg-gray-50 px-1.5 py-0.5 rounded-md">
-              <span>⌘</span><span>K</span>
-            </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="text-[13px] font-medium text-gray-500">Sort by</span>
-            <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] md:text-[13px] font-medium text-gray-500 hidden sm:inline">Sort by</span>
+            <div className="flex items-center gap-1 text-[12px] md:text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-3 md:px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50">
               <select 
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
-                className="bg-transparent outline-none cursor-pointer appearance-none pr-2 font-bold"
+                className="bg-transparent outline-none cursor-pointer appearance-none pr-1 md:pr-2 font-bold text-[12px] md:text-[13px]"
               >
                 <option>Last Interaction</option>
                 <option>Entity ID</option>
                 <option>Open Promises</option>
                 <option>Event Count</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 -ml-1 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
-          <button onClick={() => window.location.href = "/dashboard"} className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm ml-2" title="View Dashboard">
-            <Bell className="w-[18px] h-[18px] text-gray-600" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white box-content" />
+          <button onClick={() => window.location.href = "/dashboard"} className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center relative hover:bg-gray-50 transition-colors shadow-sm shrink-0" title="View Dashboard">
+            <Bell className="w-[16px] h-[16px] md:w-[18px] md:h-[18px] text-gray-600" />
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 border-2 border-white box-content" />
           </button>
         </div>
       </div>
 
       {/* Filters Area */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto">
           {stateFilters.map(filter => {
             const mappedState = filter.label.toUpperCase().replace(" ", "_");
             const isActive = activeState === mappedState || (activeState === "All" && filter.label === "All");
@@ -111,7 +108,7 @@ export default function EntitiesPage() {
               <button
                 key={filter.label}
                 onClick={() => setActiveState(filter.label === "All" ? "All" : mappedState)}
-                className={`px-4 py-1.5 rounded-xl text-[13px] font-bold border transition-all ${filter.class} ${isActive ? 'ring-2 ring-offset-1 ring-[#1E3A2F]/20' : ''}`}
+                className={`px-3 md:px-4 py-1.5 rounded-xl text-[12px] md:text-[13px] font-bold border transition-all shrink-0 ${filter.class} ${isActive ? 'ring-2 ring-offset-1 ring-[#1E3A2F]/20' : ''}`}
               >
                 {filter.label}
               </button>
@@ -119,15 +116,16 @@ export default function EntitiesPage() {
           })}
         </div>
         
-        <button onClick={() => setActiveState(activeState === "All" ? "AT_RISK" : "All")} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors" title="Toggle show at-risk only">
-          <Filter className="w-4 h-4 text-gray-400" />
+        <button onClick={() => setActiveState(activeState === "All" ? "AT_RISK" : "All")} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 md:px-4 py-2 text-[12px] md:text-[13px] font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors self-start sm:self-auto">
+          <Filter className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
           <span>At-Risk Only</span>
         </button>
       </div>
 
       {/* Table Container */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[700px]">
           <thead>
             <tr className="border-b border-gray-100">
               <th className="font-bold text-gray-400 text-[10px] tracking-widest uppercase px-8 py-5">Entity</th>
@@ -257,6 +255,7 @@ export default function EntitiesPage() {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

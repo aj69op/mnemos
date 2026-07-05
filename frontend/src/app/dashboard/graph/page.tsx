@@ -216,7 +216,7 @@ export default function KnowledgeGraphPage() {
       `}</style>
 
       {/* ── header ───────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 px-8 pt-8 pb-6 flex justify-between items-start">
+      <div className="border-b border-gray-200 px-4 md:px-6 lg:px-8 pt-8 pb-6 flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="relative w-2.5 h-2.5 flex justify-center items-center">
@@ -241,7 +241,7 @@ export default function KnowledgeGraphPage() {
       </div>
 
       {/* ── graph canvas ─────────────────────────────────────── */}
-      <div className={`px-8 py-6 flex-1 min-h-0 ${isFullscreen ? 'fixed inset-0 z-50 p-0' : ''}`}>
+      <div className={`px-4 md:px-6 lg:px-8 py-6 flex-1 min-h-0 ${isFullscreen ? 'fixed inset-0 z-50 p-0' : ''}`}>
         <div className={`relative bg-[#060809] border border-white/[0.06] shadow-[0_24px_80px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.04)] h-full min-h-[600px] flex flex-col overflow-hidden ${isFullscreen ? 'rounded-none' : 'rounded-2xl'}`}>
           {/* Background graph grid pattern */}
           <div

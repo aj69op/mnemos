@@ -39,7 +39,7 @@ export default function MemifyPage() {
 
   return (
     <div className="flex flex-col h-full bg-white text-[#111111]">
-      <div className="border-b border-gray-200 px-8 pt-8 pb-6">
+      <div className="border-b border-gray-200 px-4 md:px-6 lg:px-8 pt-6 pb-4 md:pt-8 md:pb-6">
         <h1 className="font-bold text-2xl leading-8 flex items-center gap-2">
           <Zap className="w-6 h-6 text-[#1E3A2F]" />
           Memify
@@ -49,7 +49,7 @@ export default function MemifyPage() {
         </p>
       </div>
 
-      <div className="px-8 py-8 space-y-8 max-w-4xl">
+      <div className="px-4 md:px-6 lg:px-8 py-8 space-y-8 max-w-4xl">
         {/* Demo Mode Banner */}
         {demoBanner && (
           <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl animate-fade-in">

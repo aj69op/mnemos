@@ -78,14 +78,14 @@ export default function ForgetPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-gray-200 px-8 pt-8 pb-6">
+      <div className="border-b border-gray-200 px-4 md:px-6 lg:px-8 pt-8 pb-6">
         <h1 className="font-bold text-[#111111] text-2xl leading-8">Forget</h1>
         <p className="text-gray-500 text-sm mt-1">
           Remove churned entities from active tracking. Historical data is preserved.
         </p>
       </div>
 
-      <div className="px-8 py-6 flex-1 overflow-y-auto">
+      <div className="px-4 md:px-6 lg:px-8 py-6 flex-1 overflow-y-auto">
         {/* Demo Mode Banner */}
         {demoBanner && (
           <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl mb-4 animate-fade-in">
@@ -135,12 +135,12 @@ export default function ForgetPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 mt-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 mt-6 gap-4">
           <div className="shadow-[0_14px_34px_rgba(17,17,17,0.08)] transition-all duration-300 rounded-2xl bg-white border-gray-200 border p-4">
             <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
               Churned Entities
             </div>
-            <div className="leading-none font-semibold text-red-600 text-[28px] mt-3">
+            <div className="leading-none font-semibold text-red-600 text-[22px] md:text-[28px] mt-3">
               {loading ? "—" : filteredEntities.length}
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function ForgetPage() {
             <div className="uppercase text-gray-400 text-[11px] tracking-[2.24px]">
               Open Promises (Churned)
             </div>
-            <div className="leading-none font-semibold text-[#111111] text-[28px] mt-3">
+            <div className="leading-none font-semibold text-[#111111] text-[22px] md:text-[28px] mt-3">
               {loading ? "—" : totalOpenPromises}
             </div>
           </div>

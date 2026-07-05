@@ -88,7 +88,7 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="p-10 h-full min-h-full bg-[#FAFAFA] font-sans flex flex-col relative">
+    <div className="p-4 md:p-6 lg:p-10 h-full min-h-full bg-[#FAFAFA] font-sans flex flex-col relative">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -114,7 +114,7 @@ export default function ImportPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm flex-1 flex overflow-hidden p-8 gap-12 flex-col lg:flex-row relative">
+      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm flex-1 flex overflow-hidden p-4 md:p-6 lg:p-8 gap-6 lg:gap-12 flex-col lg:flex-row relative">
         
         {demoBanner && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 p-4 rounded-xl animate-fade-in shadow-md w-full max-w-lg">

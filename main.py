@@ -853,6 +853,18 @@ async def forget_entity(req: ForgetRequest, _=Depends(require_write_access)):
 
 # ─── Health Check ─────────────────────────────────────────────────────────────
 
+@app.post("/admin/clear-data")
+async def admin_clear_data():
+    """TEMP: Clear all data from database."""
+    from db import get_connection
+    conn = get_connection()
+    tables = ["events","alerts","state_changes","agent_state","cognee_retry","conflicts","forgotten_entities"]
+    for t in tables:
+        conn.execute(f"DELETE FROM {t}")
+    conn.commit()
+    conn.close()
+    return {"status": "cleared", "tables": tables}
+
 @app.get("/health")
 async def health():
     return {

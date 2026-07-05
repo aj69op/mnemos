@@ -73,6 +73,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         
         <div className="p-6 flex flex-col gap-6">
+          {/* Cognee Lifecycle Badge */}
+          <div className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#0A3020]/5 border border-[#0A3020]/10 rounded-xl">
+            {["Remember", "Recall", "Memify", "Forget"].map((step, i) => (
+              <React.Fragment key={step}>
+                {i > 0 && <span className="text-[#0A3020]/20 text-[10px] font-light">·</span>}
+                <span className={`text-[10px] font-bold tracking-wider ${i === 1 ? "text-[#0A3020]" : "text-[#0A3020]/50"}`}>
+                  {step}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+
           <div className="rounded-[1.25rem] border border-[#E8F3EF] bg-[#F4FAF7] p-5 flex flex-col gap-2 relative overflow-hidden">
             <span className="font-bold text-gray-900 text-[13px]">
               AI Agent Status

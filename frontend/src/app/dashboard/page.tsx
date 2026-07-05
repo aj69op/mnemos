@@ -266,33 +266,24 @@ export default function DashboardPage() {
             <div className="flex items-center gap-6">
               {filterTabs.map(tab => {
                 const isActive = activeFilter === tab.key;
-                if (tab.key === 'all') {
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveFilter(tab.key)}
-                      className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
-                        isActive ? "bg-[#0A3020] text-white shadow-md" : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {tab.label}
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] flex items-center justify-center ${isActive ? "bg-white/10 text-white/90" : "bg-gray-200 text-gray-500"}`}>
-                        {tab.count}
-                      </span>
-                    </button>
-                  );
-                }
+                const activeBg = tab.key === "critical" ? "bg-red-600"
+                  : tab.key === "high" ? "bg-blue-600"
+                  : tab.key === "medium" ? "bg-emerald-600"
+                  : "bg-[#0A3020]";
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveFilter(tab.key)}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 text-[13px] font-medium transition-colors ${
-                      isActive ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${
+                      isActive ? `${activeBg} text-white shadow-md` : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
-                    {tab.label} <span className={`font-bold ${tab.countColor}`}>{tab.count}</span> <span className={`w-1.5 h-1.5 rounded-full ${tab.dotColor}`} />
+                    {tab.label}
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] flex items-center justify-center ${isActive ? "bg-white/10 text-white/90" : "bg-gray-200 text-gray-500"}`}>
+                      {tab.count}
+                    </span>
                   </button>
-                )
+                );
               })}
             </div>
             <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-gray-50" onClick={() => setSortOrder(prev => prev === "latest" ? "critical" : "latest")}>

@@ -746,7 +746,16 @@ async def import_csv(file: UploadFile = File(...), _=Depends(require_write_acces
                 date_str=date_str,
             )
 
-            storage.save_event(event)
+            event_id = storage.save_event(event)
+
+            if event.attribute_type and event.attribute_value:
+                check_for_conflict(
+                    entity_id,
+                    event.attribute_type,
+                    event.attribute_value,
+                    event.attribute_source or "interaction note",
+                    event_id,
+                )
 
             results.append({
                 "row": row_num,

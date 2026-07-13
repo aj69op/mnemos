@@ -204,25 +204,66 @@ def init_db() -> None:
         
         if not has_churned:
             print("[db] Seeding new churned demo entities...")
-            from data.helpers import build_event
-            from data.customers import CUSTOMER_EVENTS
-            target_entities = {"hitech_solutions", "apex_retail", "legacy_industries"}
+            import json
+            from datetime import datetime, timezone, timedelta
+
+            def seed_event(conn, entity_id, entity_type, raw_text, event_type, sentiment, sentiment_intensity, days, erp_tags, relationship_signals):
+                extracted_at = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                payload = {
+                    "raw_text": raw_text,
+                    "customer_or_vendor_id": entity_id,
+                    "entity_type": entity_type,
+                    "event_type": event_type,
+                    "entities_mentioned": [],
+                    "promises": [],
+                    "sentiment": sentiment,
+                    "sentiment_intensity": float(sentiment_intensity),
+                    "erp_tags": erp_tags,
+                    "relationship_signals": relationship_signals,
+                    "extracted_at": extracted_at
+                }
+                conn.execute(
+                    """
+                    INSERT INTO events (entity_id, entity_type, payload, occurred_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (entity_id, entity_type, json.dumps(payload), extracted_at)
+                )
+
             with get_connection() as insert_conn:
-                for event_dict in CUSTOMER_EVENTS:
-                    if event_dict.get("customer_or_vendor_id") in target_entities:
-                        event = build_event(event_dict)
-                        insert_conn.execute(
-                            """
-                            INSERT INTO events (entity_id, entity_type, payload, occurred_at)
-                            VALUES (?, ?, ?, ?)
-                            """,
-                            (
-                                event.customer_or_vendor_id,
-                                event.entity_type,
-                                event.model_dump_json(),
-                                event.extracted_at,
-                            ),
-                        )
+                # 1. HiTech Solutions
+                seed_event(insert_conn, "hitech_solutions", "Customer",
+                           "Initial kickoff meeting with HiTech Solutions. They are excited about migrating from legacy systems.",
+                           "positive", "positive", 0.6, 120, ["kickoff"], [])
+                seed_event(insert_conn, "hitech_solutions", "Customer",
+                           "HiTech Solutions team reports multiple compatibility issues with their database. Demanding refund.",
+                           "negative", "negative", -0.7, 90, ["complaint"], [])
+                seed_event(insert_conn, "hitech_solutions", "Customer",
+                           "HiTech Solutions formally terminated the contract and requested account closure due to technical misalignment.",
+                           "negative", "negative", -0.9, 60, ["churned"], ["churn_confirmed"])
+
+                # 2. Apex Retail
+                seed_event(insert_conn, "apex_retail", "Customer",
+                           "Signed annual contract with Apex Retail for custom supply chain tracking.",
+                           "positive", "positive", 0.8, 150, ["contract_signed"], [])
+                seed_event(insert_conn, "apex_retail", "Customer",
+                           "Apex Retail usage dropped to zero this quarter. Multiple follow-ups unanswered.",
+                           "neutral", "neutral", 0.0, 120, ["inactive"], [])
+                seed_event(insert_conn, "apex_retail", "Customer",
+                           "Confirmed non-renewal and closure of Apex Retail account. Subscription officially cancelled.",
+                           "negative", "negative", -0.8, 90, ["churned"], ["churn_confirmed"])
+
+                # 3. Legacy Industries
+                seed_event(insert_conn, "legacy_industries", "Customer",
+                           "Legacy Industries bought a pilot license for 10 users.",
+                           "positive", "positive", 0.5, 180, ["lead"], [])
+                seed_event(insert_conn, "legacy_industries", "Customer",
+                           "Pilot ended. Legacy Industries partners decided not to proceed with full procurement.",
+                           "neutral", "neutral", 0.0, 150, ["pilot_ended"], [])
+                seed_event(insert_conn, "legacy_industries", "Customer",
+                           "Account deactivated. Customer officially churned.",
+                           "negative", "negative", -0.8, 120, ["churned"], ["churn_confirmed"])
+
                 insert_conn.commit()
     except Exception as e:
         print(f"[db] Post-init seeding failed: {e}")

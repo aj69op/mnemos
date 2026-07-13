@@ -195,6 +195,38 @@ def init_db() -> None:
         conn.close()
     print(f"[db] Initialized at {DB_PATH}")
 
+    # ── Post-init migration: seed new churned demo entities if missing ──
+    try:
+        with get_connection() as check_conn:
+            has_churned = check_conn.execute(
+                "SELECT 1 FROM events WHERE entity_id = 'hitech_solutions'"
+            ).fetchone()
+        
+        if not has_churned:
+            print("[db] Seeding new churned demo entities...")
+            from data.helpers import build_event
+            from data.customers import CUSTOMER_EVENTS
+            target_entities = {"hitech_solutions", "apex_retail", "legacy_industries"}
+            with get_connection() as insert_conn:
+                for event_dict in CUSTOMER_EVENTS:
+                    if event_dict.get("customer_or_vendor_id") in target_entities:
+                        event = build_event(event_dict)
+                        insert_conn.execute(
+                            """
+                            INSERT INTO events (entity_id, entity_type, payload, occurred_at)
+                            VALUES (?, ?, ?, ?)
+                            """,
+                            (
+                                event.customer_or_vendor_id,
+                                event.entity_type,
+                                event.model_dump_json(),
+                                event.extracted_at,
+                            ),
+                        )
+                insert_conn.commit()
+    except Exception as e:
+        print(f"[db] Post-init seeding failed: {e}")
+
 
 # ─── FastAPI dependency ────────────────────────────────────────────────────────
 

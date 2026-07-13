@@ -64,6 +64,22 @@ def save_event(event: ExtractedERPEvent) -> int:
     Returns the new row id.
     """
     with db_session() as conn:
+        # Check if an event with the same entity_id and raw_text already exists
+        existing = conn.execute(
+            """
+            SELECT id FROM events 
+            WHERE entity_id = ? 
+              AND json_extract(payload, '$.raw_text') = ?
+            """,
+            (
+                event.customer_or_vendor_id,
+                event.raw_text,
+            ),
+        ).fetchone()
+        if existing:
+            print(f"[storage] Event already exists, skipping duplicate insert: {event.customer_or_vendor_id} - '{event.raw_text[:40]}...'")
+            return existing["id"]
+
         cur = conn.execute(
             """
             INSERT INTO events (entity_id, entity_type, payload, occurred_at)

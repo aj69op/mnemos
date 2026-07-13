@@ -26,9 +26,31 @@ export default function CustomerProfile() {
           api.getTimeline(id),
           api.getCommitments(id)
         ]);
-        setTimeline(tl.timeline || []);
+        
+        // Deduplicate timeline events in frontend
+        const uniqueEvents: TimelineEvent[] = [];
+        const seenEvents = new Set<string>();
+        for (const event of (tl.timeline || [])) {
+          const key = `${event.raw_text.trim()}_${event.timestamp}`;
+          if (!seenEvents.has(key)) {
+            seenEvents.add(key);
+            uniqueEvents.push(event);
+          }
+        }
+        setTimeline(uniqueEvents);
         setState(tl.relationship_state || "");
-        setCommitments(cmts.commitments || []);
+
+        // Deduplicate commitments in frontend
+        const uniqueCommitments: Commitment[] = [];
+        const seenCommitments = new Set<string>();
+        for (const commitment of (cmts.commitments || [])) {
+          const key = `${commitment.description.trim()}_${commitment.recorded_at}`;
+          if (!seenCommitments.has(key)) {
+            seenCommitments.add(key);
+            uniqueCommitments.push(commitment);
+          }
+        }
+        setCommitments(uniqueCommitments);
       } catch (err) {
         console.error(err);
       } finally {

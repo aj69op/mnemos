@@ -178,6 +178,19 @@ def init_db() -> None:
         if "pruned" not in cols:
             conn.execute("ALTER TABLE events ADD COLUMN pruned INTEGER NOT NULL DEFAULT 0")
             conn.commit()
+
+        # --- cleanup: deduplicate existing events table ---
+        conn.execute(
+            """
+            DELETE FROM events
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM events
+                GROUP BY entity_id, json_extract(payload, '$.raw_text')
+            )
+            """
+        )
+        conn.commit()
     finally:
         conn.close()
     print(f"[db] Initialized at {DB_PATH}")
